@@ -1,7 +1,8 @@
 #include <sys/socket.h> // For socket functions
 #include <netinet/in.h> // For sockaddr_in
 #include <cstdlib> // For exit() and EXIT_FAILURE
-#include <iostream> // For cout
+#include <fstream> // For files
+#include <iostream> 
 #include <unistd.h> // For read
 #include <arpa/inet.h>
 #include <poll.h>
@@ -16,26 +17,17 @@ int		main()
 	int					server_fd;
 	int					new_fd;
 	int 				numbytes;
-	char				buffer[256];
 	struct	sockaddr_in	addr;
 	socklen_t			addrlen = sizeof(addr);
-	std::string			message = "Here the server\n";
 
-	int 				read_fd;
-	int 				read_file;
-    char                read_buffer[4096];
-    if ((read_fd = open("http", O_RDONLY)) < 0)
-	{
-        perror("In open");
-        exit(EXIT_FAILURE);
-    }
-    if ((read_file = read(read_fd, read_buffer, sizeof(read_buffer))) < 0)
-    {
-        perror("In read file");
-        exit(EXIT_FAILURE);
-    }
-	std::cout << read_buffer << std::endl;
-	close(read_fd);
+	std::ifstream		filestr("http");
+	filestr.seekg (0, filestr.end);
+    int 				length = filestr.tellg();
+    filestr.seekg (0, filestr.beg);
+	char 				*buffer = new char [length];
+
+	filestr.read (buffer,length);
+    filestr.close();
 
 	if ((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == 0)
 	{
@@ -100,7 +92,7 @@ int		main()
     					pfds[fd_count].events = POLLIN;
     					fd_count++;
 						std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
-						if (send(new_fd , read_buffer, read_file, 0) == -1)
+						if (send(new_fd , buffer, length, 0) == -1)
 						{
 							perror("In send");
 							close(server_fd);
