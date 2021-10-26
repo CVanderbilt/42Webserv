@@ -76,12 +76,7 @@ int		main()
 				{
 					new_fd = accept(server_fd, (struct sockaddr *)&addr, &addrlen);
 					if (new_fd == -1)
-					{
 						perror("In accept");
-						close(server_fd);
-						close(new_fd);
-						exit(EXIT_FAILURE);
-					}
 					else
 					{
 						pfds[fd_count].fd = new_fd;
@@ -89,15 +84,25 @@ int		main()
     					fd_count++;
 						std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
 					}
-					close(new_fd);
 				}
 				else
 				{
-					if ((recv(pfds[i].fd, buffer, BUFFER_SIZE, 0)) == -1)
+					if ((numbytes = recv(pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
+						perror("In recv");
+					int status = reqs->parse_chunk(buffer);
+					switch (status)
 					{
-						perror("In accept");
-						close(pfds[i].fd);
-						exit(EXIT_FAILURE);
+					case Http_req::PARSE_ERROR:
+						break;
+					case Http_req::PARSE_ONGOING:
+						break;
+					case Http_req::PARSE_HEAD:
+						break;
+					case Http_req::PARSE_END:
+						send(pfds[i].fd, "OK", sizeof("OK"), 0);
+						break;
+					default:
+						break;
 					}
 				}
 			}
