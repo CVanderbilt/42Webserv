@@ -9,8 +9,10 @@
 #include <fcntl.h>
 #include <cstring>
 #include <vector>
+#include "Http_req.hpp"
 
 #define PORT 9999
+#define BUFFER_SIZE 4096
 
 int		main()
 {
@@ -20,14 +22,7 @@ int		main()
 	struct	sockaddr_in	addr;
 	socklen_t			addrlen = sizeof(addr);
 
-	std::ifstream		filestr("http");
-	filestr.seekg (0, filestr.end);
-    int 				length = filestr.tellg();
-    filestr.seekg (0, filestr.beg);
-	char 				*buffer = new char [length];
-
-	filestr.read (buffer,length);
-    filestr.close();
+	char 				*buffer = new char [BUFFER_SIZE + 1];
 
 	if ((server_fd = socket(PF_INET, SOCK_STREAM, 0)) == 0)
 	{
@@ -58,9 +53,10 @@ int		main()
 		exit(EXIT_FAILURE);
 	}
 	pollfd *pfds = new pollfd[10];
+	Http_req *reqs = new Http_req[10];
 
 	pfds[0].fd = server_fd;
-	pfds[0].events = POLLIN;
+	pfds[0].events = POLLIN | POLLOUT;
 	int fd_count = 1;
 
 	while(1)
@@ -92,15 +88,17 @@ int		main()
     					pfds[fd_count].events = POLLIN;
     					fd_count++;
 						std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
-						if (send(new_fd , buffer, length, 0) == -1)
-						{
-							perror("In send");
-							close(server_fd);
-							close(new_fd);
-							exit(EXIT_FAILURE);
-						}
 					}
 					close(new_fd);
+				}
+				else
+				{
+					if ((recv(pfds[i].fd, buffer, BUFFER_SIZE, 0)) == -1)
+					{
+						perror("In accept");
+						close(pfds[i].fd);
+						exit(EXIT_FAILURE);
+					}
 				}
 			}
 		}
