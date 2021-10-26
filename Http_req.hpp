@@ -26,6 +26,8 @@ class Http_req
 		int			_content_size;
 		parsing_status status;
 
+		int parse_chunk_body(void);
+
 	public:
 		std::string							method;
 		std::map<std::string, std::string>	head;
@@ -34,6 +36,7 @@ class Http_req
 		Http_req(void);
 
 		parsing_status parse_chunk(std::string chunk);
+		static std::string status_to_str(parsing_status st);
 };
 
 std::ostream&   operator<<(std::ostream& os, const Http_req& obj);

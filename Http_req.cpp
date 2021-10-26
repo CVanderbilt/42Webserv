@@ -10,24 +10,54 @@
 
 Http_req::Http_req(void): status(Http_req::PARSE_ONGOING) {}
 
+/*
+*	This function add the content of _aux_buff into body up to
+*	content_length bytes, when end 1 is returned, otherwise
+*	0 is returned.
+*/
+int Http_req::parse_chunk_body(void)
+{
+	size_t body_len = body.length();
+
+	if (body_len == content_length) 							//(1)body length correct -> end
+		status = PARSE_END;
+	else if (body_len > content_length) 						//(2)body length greater than expected -> trim -> end
+		body = body.substr(0, content_length);
+	else if (_aux_buff.length() + body_len >= content_length) 	//(3)body length + buff greater or equal
+		body += _aux_buff.substr(0, content_length - body_len);	//  than expected add until body length correct
+	else														//(4)body + buff < expected -> simple addition
+	{
+		body += _aux_buff;
+		_aux_buff.clear();
+		return (0);
+	}
+	return (1);
+}
+
+std::string Http_req::status_to_str(parsing_status st)
+{
+	if (st == Http_req::PARSE_END)
+		return ("parse end");
+	if (st == Http_req::PARSE_ERROR)
+		return ("parse error");
+	if (st == Http_req::PARSE_HEAD)
+		return ("parse head");
+	return ("parse ongoing");
+}
+
 Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 {
-	write(1, "hola\n", 5);
-	int lbuff;
 	if (status == PARSE_ERROR || status == PARSE_END)
 		return status;
 	_aux_buff += chunk;
+
 	while(status != PARSE_ERROR && status != PARSE_END)
 	{
-		std::cout << "processing loop:" << std::endl;
-		getchar();
-		lbuff = _aux_buff.length();
 		/*
 		*	head not parsed yet
 		*/
 		if (status == PARSE_ONGOING)
 		{
-			std::cout << "parse ongoing, parsing head" << std::endl;
 			/*
 			*	if eol not found break and wait for more info.
 			*/
@@ -48,8 +78,13 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 				content_length = 0;
 				if (head.count("Content-Length"))
 					content_length = std::atol(head["Content-Length"].c_str());
+				else if (head.count("content-length"))
+					content_length = std::atol(head["content-length"].c_str());
 				else
+				{
+					std::cout << "status -> parse end, no body" << std::endl;
 					status = PARSE_END;
+				}
 				continue ;
 			}
 			/*
@@ -79,22 +114,11 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 		/*
 		*	head already parsed
 		*/
-		size_t body_len = body.length();
-		if (body_len == content_length) //body length correct -> end
-			status = PARSE_END;
-		else if (body_len > content_length) //body length greater than expected -> trim
-			body = body.substr(0, content_length);
-		else if (_aux_buff.length() + body_len > content_length) //body length + buff greater than expected add until body length correct
-			body += _aux_buff.substr(0, content_length - body_len);
-		else	//body + buff < expected -> simple addition
-		{
-			body += _aux_buff;
-			_aux_buff.clear();
+		if (!parse_chunk_body())
 			break ;
-		}
 	}
 	std::cout << "loop ended" << std::endl;
-	getchar();
+	//getchar();
 	if (status == PARSE_END || status == PARSE_ERROR)
 		_aux_buff.clear();
 	return (status);
