@@ -112,9 +112,7 @@ int		main()
 					case Http_req::PARSE_HEAD:
 						break;
 					case Http_req::PARSE_END:
-						send(pfds[i].fd, &response, response.length(), 0);
-						break;
-					default:
+						send(pfds[i].fd, response.c_str(), response.length(), 0);
 						break;
 					}
 				}
