@@ -16,6 +16,19 @@
 
 int		main()
 {
+	const std::string response = "HTTP/1.1 200 OK\r\n"
+							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
+							"Server: Apache/2.2.14 (Win32)\r\n"
+							"Last-Modified: Sat, 20 Nov 2004 07:16:26 GMT\r\n"
+							"ETag: \"10000000565a5-2c-3e94b66c2e680\"\r\n"
+							"Accept-Ranges: bytes\r\n"
+							"Content-Length: 44\r\n"
+							"Keep-Alive: timeout=5, max=100\r\n"
+							"Connection: Keep-Alive\r\n"
+							"Content-Type: text/html\r\n"
+							"\r\n" 
+							"<html><body><h1>It works!</h1></body></html>";
+
 	int					server_fd;
 	int					new_fd;
 	int 				numbytes;
@@ -99,7 +112,7 @@ int		main()
 					case Http_req::PARSE_HEAD:
 						break;
 					case Http_req::PARSE_END:
-						send(pfds[i].fd, "OK", sizeof("OK"), 0);
+						send(pfds[i].fd, &response, response.length(), 0);
 						break;
 					default:
 						break;
