@@ -8,14 +8,25 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void): status(Http_req::PARSE_ONGOING) {}
+Http_req::Http_req(void): status(Http_req::PARSE_INIT) {}
+
+std::string Http_req::status_to_str(parsing_status st)
+{
+	if (st == Http_req::PARSE_END)
+		return ("parse ended");
+	if (st == Http_req::PARSE_ERROR)
+		return ("parse ended with errors");
+	if (st == Http_req::PARSE_HEAD)
+		return ("parsing headers");
+	return ("parsing body");
+}
 
 /*
 *	This function add the content of _aux_buff into body up to
 *	content_length bytes, when end 1 is returned, otherwise
 *	0 is returned.
 */
-int Http_req::parse_chunk_body(void)
+void Http_req::parse_body(void)
 {
 	size_t body_len = body.length();
 
@@ -29,21 +40,60 @@ int Http_req::parse_chunk_body(void)
 	{
 		body += _aux_buff;
 		_aux_buff.clear();
-		return (0);
+		return ;
 	}
-	return (1);
+	status = PARSE_END;
 }
 
-std::string Http_req::status_to_str(parsing_status st)
+void Http_req::parse_method(void)
 {
-	if (st == Http_req::PARSE_END)
-		return ("parse end");
-	if (st == Http_req::PARSE_ERROR)
-		return ("parse error");
-	if (st == Http_req::PARSE_HEAD)
-		return ("parse head");
-	return ("parse ongoing");
+	size_t eol = _aux_buff.find("\r\n");
+	if (eol == _aux_buff.npos)
+		return ;
+	std::string line = _aux_buff.substr(0, eol);			//first line from chundk
+	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
+			
+	method = line;
+	status = PARSE_HEAD;
 }
+
+void Http_req::parse_head(void)
+{
+	size_t eol = _aux_buff.find("\r\n");
+	if (eol == _aux_buff.npos)
+		return ;
+	std::string line = _aux_buff.substr(0, eol);			//first line from chundk
+	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
+
+	if (eol == 0) //empty line -> head completed
+	{
+		status = PARSE_BODY;
+		content_length = 0;
+		if (head.count("Content-Length"))
+			content_length = std::atol(head["Content-Length"].c_str());
+		else if (head.count("content-length"))
+			content_length = std::atol(head["content-length"].c_str());
+		else
+			status = PARSE_END;
+		return ;
+	}
+	/*
+	*	Processing key:value header pair
+	*/
+	eol = line.find(":");
+	if (eol == line.npos)	//key:value pair not correctly formatted -> error
+	{
+		status = PARSE_ERROR;
+		return ;
+	}
+	std::string key = line.substr(0, eol);	//key
+	line = line.substr(eol + 1, line.npos);	//value
+	if (head.count(key))	//key already exists
+		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
+	else
+		head[key] = line;
+}
+
 
 Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 {
@@ -53,71 +103,21 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 
 	while(status != PARSE_ERROR && status != PARSE_END)
 	{
-		/*
-		*	head not parsed yet
-		*/
-		if (status == PARSE_ONGOING)
+		switch (status)
 		{
-			/*
-			*	if eol not found break and wait for more info.
-			*/
-			size_t eol = _aux_buff.find("\r\n");
-			if (eol == _aux_buff.npos)
-				{std::cout << "eol not found" << std::endl; break ;}
-			std::string line = _aux_buff.substr(0, eol);			//first line from chundk
-			_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
-			std::cout << "line >" << line << "<" << std::endl;
-			/*
-			*	if empty line end of head reached
-			*	content_length set to body size or 0
-			*/
-			if (eol == 0) //empty line -> head completed
-			{
-				std::cout << "line empty -> head ended" << std::endl;
-				status = PARSE_HEAD;
-				content_length = 0;
-				if (head.count("Content-Length"))
-					content_length = std::atol(head["Content-Length"].c_str());
-				else if (head.count("content-length"))
-					content_length = std::atol(head["content-length"].c_str());
-				else
-				{
-					std::cout << "status -> parse end, no body" << std::endl;
-					status = PARSE_END;
-				}
+			case PARSE_INIT:
+				parse_method();
 				continue ;
-			}
-			/*
-			*	Processing key:value header pair
-			*/
-			if (method.empty())
-			{
-				method = line;
+			case PARSE_HEAD:
+				parse_head();
 				continue ;
-			}
-			eol = line.find(":");
-			if (eol == line.npos)	//key:value pair not correctly formatted -> error
-			{
-				std::cout << "line bad syntax" << std::endl;
-				status = PARSE_ERROR;
+			case PARSE_BODY:
+				parse_body();
 				continue ;
-			}
-			std::string key = line.substr(0, eol);	//key
-			line = line.substr(eol + 1, line.npos);	//value
-			std::cout << key << ":" << line << std::endl;
-			if (head.count(key))	//key already exists
-				head[key] = line.empty() ? head[key] : head[key] + ", " + line;
-			else
-				head[key] = line;
-			continue ;
+			default:
+				break ;
 		}
-		/*
-		*	head already parsed
-		*/
-		if (!parse_chunk_body())
-			break ;
 	}
-	std::cout << "loop ended" << std::endl;
 	//getchar();
 	if (status == PARSE_END || status == PARSE_ERROR)
 		_aux_buff.clear();
