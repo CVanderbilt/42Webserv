@@ -53,8 +53,27 @@ void Http_req::parse_method(void)
 	std::string line = _aux_buff.substr(0, eol);			//first line from chundk
 	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
 			
-	method = line;
+	eol = line.find(" ");
 	status = PARSE_HEAD;
+	if (eol == _aux_buff.npos)
+	{
+		status = PARSE_ERROR;
+		return ;
+	}
+	method = line.substr(0, eol);
+	
+	line[eol] = '.';
+	size_t sep = line.find(" ");
+	if (sep == _aux_buff.npos)
+	{
+		status = PARSE_ERROR;
+		return ;
+	}
+	uri = line.substr(eol + 1, sep - eol);
+	
+	protocol = line.substr(sep + 1, line.npos);
+	if (protocol != "HTTP/1.1")
+		status = PARSE_ERROR;
 }
 
 void Http_req::parse_head(void)
@@ -126,7 +145,7 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 
 std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 {
-	os << "Method: " << obj.method << std::endl;
+	os << "Method: " << obj.method << ", uri: " << obj.uri << ", protocol: " << obj.protocol << std::endl;
 	os << "Head:" << std::endl;
 	std::map<std::string, std::string>::const_iterator it;
 	for (it = obj.head.begin();

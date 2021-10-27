@@ -33,6 +33,8 @@ class Http_req
 
 	public:
 		std::string							method;
+		std::string							uri;
+		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;
 		int									content_length;
