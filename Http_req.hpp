@@ -16,8 +16,9 @@ class Http_req
 	typedef enum e_parsing_status
 		{
 			PARSE_ERROR,		//error
-			PARSE_ONGOING,		//returned when head was not parsed.
-			PARSE_HEAD,			//returned when head completely parsed but parsing was not completed.
+			PARSE_INIT,			//initial status, the first thing to parse is the method
+			PARSE_HEAD,			//parsing header
+			PARSE_BODY,			//parsing body
 			PARSE_END			//returned when parsing ended, attempt to parse more lines after this received will do nothing
 		}	parsing_status;
 
@@ -26,10 +27,14 @@ class Http_req
 		int			_content_size;
 		parsing_status status;
 
-		int parse_chunk_body(void);
+		void parse_method(void);
+		void parse_head(void);
+		void parse_body(void);
 
 	public:
 		std::string							method;
+		std::string							uri;
+		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;
 		int									content_length;

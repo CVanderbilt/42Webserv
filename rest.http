@@ -1,5 +1,11 @@
 
-POST http:localhost HTTP/1.1
+
+@host = http://localhost
+@port = 9999
+
+###
+
+POST {{host}}:{{port}} HTTP/1.1
 content-type: application/json
 
 <request>
