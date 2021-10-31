@@ -22,8 +22,6 @@ class Server
 private:
 
 	int				_server_fd;
-	int				_new_fd;
-	int 			_numbytes;
 	int				_fd_count;
 	int				_poll_count;
 	int				_status;
@@ -31,7 +29,6 @@ private:
 	socklen_t		_addrlen;
 	pollfd 			*_pfds;
 	Http_req 		*_reqs;
-	char 			*_buffer;
 	
 	void			accept_connection();
 	void			read_message(int i);

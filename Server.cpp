@@ -3,7 +3,8 @@
 Server::Server() :
 	_addrlen(sizeof(_addr)), 
 	_pfds(new pollfd[MAX_CONNEC]),
-	_reqs(new Http_req[MAX_CONNEC])
+	_reqs(new Http_req[MAX_CONNEC]),
+	_status(-1)
 {}
 
 void	Server::server_start()
@@ -45,7 +46,6 @@ void	Server::accept_connection()
 	}
 	if ((fcntl(_server_fd, F_SETFL, O_NONBLOCK)) == -1)
 	{
-		close (_server_fd);
 		close (new_fd);
 		throw ServerException("In fcntl", "failed for some reason");
 	}
@@ -54,7 +54,7 @@ void	Server::accept_connection()
 		_pfds[_fd_count].fd = new_fd;
 		_pfds[_fd_count].events = POLLIN | POLLOUT;
 		_fd_count++;
-		std::cout << "pollserver: new connection on socket " << _new_fd << std::endl;
+		std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
 	}
 	else
 	{
@@ -72,8 +72,10 @@ void	Server::read_message(int i)
 	{
 		close(_pfds[i].fd);
 		/*TODO: del from pfds struct array*/
+		return ;
 	}
 	buffer[numbytes] = '\0';
+	std::cout << "pollserver: message read on socket " << _pfds[i].fd << std::endl;
 	_status = _reqs[i].parse_chunk(buffer);
 }
 
