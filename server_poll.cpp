@@ -13,6 +13,7 @@
 
 #define PORT 9999
 #define BUFFER_SIZE 4096
+#define MAX_CONNEC 20
 
 int		main()
 {
@@ -32,7 +33,7 @@ int		main()
 	int					server_fd;
 	int					new_fd;
 	int 				numbytes;
-	struct	sockaddr_in	addr;
+	sockaddr_in			addr;
 	socklen_t			addrlen = sizeof(addr);
 
 	char 				*buffer = new char [BUFFER_SIZE + 1];
@@ -65,8 +66,8 @@ int		main()
 		close(server_fd);
 		exit(EXIT_FAILURE);
 	}
-	pollfd *pfds = new pollfd[10];
-	Http_req *reqs = new Http_req[10];
+	pollfd *pfds = new pollfd[MAX_CONNEC];
+	Http_req *reqs = new Http_req[MAX_CONNEC];
 
 	pfds[0].fd = server_fd;
 	pfds[0].events = POLLIN | POLLOUT;
@@ -101,17 +102,25 @@ int		main()
 				else
 				{
 					if ((numbytes = recv(pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
+					{
 						perror("In recv");
-					int status = reqs->parse_chunk(buffer);
+                        close(pfds[i].fd);
+						/*TODO: del from pfds struct array*/
+					}
+					//else if (numbytes == 0)
+					//{
+					//	std::cout << "server: socket " << pfds[i].fd << " hung up" << std::endl;
+                    //    close(pfds[i].fd);
+					//	/*TODO: del from pfds struct array*/
+					//}
+					int status = reqs[i].parse_chunk(buffer);
 					switch (status)
 					{
 					case Http_req::PARSE_ERROR:
-						break;
-					case Http_req::PARSE_ONGOING:
-						break;
-					case Http_req::PARSE_HEAD:
+						std::cout << "Parse error" << std::endl;
 						break;
 					case Http_req::PARSE_END:
+						/*TODO: prepare response message*/
 						send(pfds[i].fd, response.c_str(), response.length(), 0);
 						break;
 					}
