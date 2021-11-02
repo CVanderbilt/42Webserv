@@ -1,8 +1,9 @@
 #include "Server.hpp"
 
 Server::Server() :
-	_addrlen(sizeof(_addr)), 
-	_pfds(new pollfd[MAX_CONNEC])
+	_addrlen(sizeof(_addr)),
+	_fd_size(2),
+	_pfds(new pollfd[_fd_size])
 {}
 
 void	Server::server_start()
@@ -51,15 +52,13 @@ void	Server::accept_connection()
 	{
 		Client new_client(new_fd);
 
-		_pfds[_fd_count].fd = new_fd;
-		_pfds[_fd_count].events = POLLIN | POLLOUT;
-		_fd_count++;
+		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
-		std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
+		std::cout << "server: new connection on socket " << new_fd << std::endl;
 	}
 	else
 	{
-		std::cout << "Conexion no aceptada" << std::endl;
+		std::cout << "server: connection not accepted" << std::endl;
 		/*TODO: send response to the client rejecting connection */
 		close(new_fd);
 	}
@@ -70,23 +69,22 @@ void	Server::read_message(int i)
 	char	*buffer = new char[BUFFER_SIZE + 1];
 	int 	numbytes;
 	
-	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
+//	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
 		close(_pfds[i].fd);
 		_pfds[i].fd = -1;
-		/*TODO: del from pfds struct array*/
 		return ;
 	}
 	else if (numbytes == 0)
 	{
-		std::cout << "El cliente cerró la conexion" << std::endl;
+		std::cout << "server: client closed connection" << std::endl;
 	}
 
 	buffer[numbytes] = '\0';
 	if (_clients.count(_pfds[i].fd))
 		_clients[_pfds[i].fd].getParseChunk(buffer);
-	std::cout << "pollserver: message read and parsed on socket " << _pfds[i].fd << std::endl;
+	std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
 }
 
 void	Server::server_listen()
@@ -102,7 +100,7 @@ void	Server::server_listen()
 	{
 		if (_pfds[i].revents & POLLIN)
 		{
-			std::cout << "estamos en POLLIN en i = " << i << std::endl;
+//			std::cout << "estamos en POLLIN en i = " << i << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
@@ -110,7 +108,7 @@ void	Server::server_listen()
 		}		
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
+//			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
 			int status;
 			if (_clients.count(_pfds[i].fd))
 				status = _clients[_pfds[i].fd].getStatus();
@@ -131,7 +129,7 @@ void	Server::server_listen()
 							"<html><body><h1>It works!</h1></body></html>";
 
 				send(_pfds[i].fd, response.c_str(), response.length(), 0);
-				std::cout << "Mensaje enviado" << std::endl;
+				std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
 			}
 			else if (status == 0)
 				std::cout << "Parse error" << std::endl;
@@ -139,10 +137,40 @@ void	Server::server_listen()
 				continue;
 			close(_pfds[i].fd);
 			_clients.erase(_pfds[i].fd);
-			_pfds[i].fd = -1; /*TODO: MEJORAR*/
+			_pfds[i].fd = -1;
+		}
+		if(_pfds[i].fd == -1)
+		{
+			del_from_pfds(_pfds[i].fd, i);
+			i--;
 		}
 	}
 }
+
+void	Server::add_to_pfds(int new_fd)
+{
+//	std::cout << "_fd_size = " << _fd_size << std::endl;
+	if (_fd_count == _fd_size)
+	{
+		_fd_size = 2 * _fd_size > MAX_CONNEC? MAX_CONNEC : _fd_size * 2;
+//		std::cout << "_fd_size = " << _fd_size << std::endl;
+		pollfd	*temp = new pollfd[_fd_size];
+		for (size_t i = 0; i < _fd_count; i++)
+			temp[i] = _pfds[i];
+		delete[] _pfds;
+		_pfds = temp;		
+	}
+	_pfds[_fd_count].fd = new_fd;
+	_pfds[_fd_count].events = POLLIN | POLLOUT;
+	_fd_count++;
+}
+
+void	Server::del_from_pfds(int fd, int i)
+{
+	_pfds[i] = _pfds[_fd_count];
+	_fd_count--;
+}
+
 
 Server::ServerException::ServerException(void)
 {

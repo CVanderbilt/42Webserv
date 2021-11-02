@@ -34,7 +34,7 @@ private:
 
 	void			accept_connection();
 	void			read_message(int i);
-	void			add_to_pfds(int fd);
+	void			add_to_pfds(int new_fd);
 	void			del_from_pfds(int fd, int i);
 
 public:
