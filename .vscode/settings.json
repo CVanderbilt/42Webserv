@@ -44,6 +44,7 @@
 		"list": "cpp",
 		"map": "cpp",
 		"set": "cpp",
-		"functional": "cpp"
+		"functional": "cpp",
+		"cstring": "cpp"
 	}
 }
