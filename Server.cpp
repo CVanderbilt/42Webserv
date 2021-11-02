@@ -2,9 +2,7 @@
 
 Server::Server() :
 	_addrlen(sizeof(_addr)), 
-	_pfds(new pollfd[MAX_CONNEC]),
-	_reqs(new Http_req[MAX_CONNEC]),
-	_status(-1)
+	_pfds(new pollfd[MAX_CONNEC])
 {}
 
 void	Server::server_start()
@@ -51,13 +49,17 @@ void	Server::accept_connection()
 	}
 	if(_fd_count < MAX_CONNEC)
 	{
+		Client new_client(new_fd);
+
 		_pfds[_fd_count].fd = new_fd;
 		_pfds[_fd_count].events = POLLIN | POLLOUT;
 		_fd_count++;
+		_clients[new_fd] = new_client;
 		std::cout << "pollserver: new connection on socket " << new_fd << std::endl;
 	}
 	else
 	{
+		std::cout << "Conexion no aceptada" << std::endl;
 		/*TODO: send response to the client rejecting connection */
 		close(new_fd);
 	}
@@ -68,15 +70,23 @@ void	Server::read_message(int i)
 	char	*buffer = new char[BUFFER_SIZE + 1];
 	int 	numbytes;
 	
-	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) <= 0)
+	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
+	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
 		close(_pfds[i].fd);
+		_pfds[i].fd = -1;
 		/*TODO: del from pfds struct array*/
 		return ;
 	}
+	else if (numbytes == 0)
+	{
+		std::cout << "El cliente cerró la conexion" << std::endl;
+	}
+
 	buffer[numbytes] = '\0';
-	std::cout << "pollserver: message read on socket " << _pfds[i].fd << std::endl;
-	_status = _reqs[i].parse_chunk(buffer);
+	if (_clients.count(_pfds[i].fd))
+		_clients[_pfds[i].fd].getParseChunk(buffer);
+	std::cout << "pollserver: message read and parsed on socket " << _pfds[i].fd << std::endl;
 }
 
 void	Server::server_listen()
@@ -92,6 +102,7 @@ void	Server::server_listen()
 	{
 		if (_pfds[i].revents & POLLIN)
 		{
+			std::cout << "estamos en POLLIN en i = " << i << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
@@ -99,12 +110,12 @@ void	Server::server_listen()
 		}		
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			switch (_status)
+			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
+			int status;
+			if (_clients.count(_pfds[i].fd))
+				status = _clients[_pfds[i].fd].getStatus();
+			if (status > 0)
 			{
-			case Http_req::PARSE_ERROR:
-				std::cout << "Parse error" << std::endl;
-				break;
-			case Http_req::PARSE_END:
 				/*TODO: prepare response message*/
 				const std::string response = "HTTP/1.1 200 OK\r\n"
 							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
@@ -120,8 +131,15 @@ void	Server::server_listen()
 							"<html><body><h1>It works!</h1></body></html>";
 
 				send(_pfds[i].fd, response.c_str(), response.length(), 0);
-				break;
+				std::cout << "Mensaje enviado" << std::endl;
 			}
+			else if (status == 0)
+				std::cout << "Parse error" << std::endl;
+			else
+				continue;
+			close(_pfds[i].fd);
+			_clients.erase(_pfds[i].fd);
+			_pfds[i].fd = -1; /*TODO: MEJORAR*/
 		}
 	}
 }

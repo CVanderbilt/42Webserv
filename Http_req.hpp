@@ -27,13 +27,13 @@ class Http_req
 	private:
 		std::string _aux_buff;
 		int			_content_size;
-		parsing_status status;
 
 		void parse_method(void);
 		void parse_head(void);
 		void parse_body(void);
 
 	public:
+		parsing_status status;
 		std::string							method;
 		std::string							uri;
 		std::string							protocol;
