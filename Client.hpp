@@ -18,15 +18,18 @@ class Client
 private:
 	bool		_is_sending;
 	int			_fd;
-	Client();
+	int			_status;
+	Http_req	_request;
 	
 public:
 
-	int			status;
-	Http_req	request;
+	Client();
 	Client(int const fd);
+	Client(Client const &copy);
 	virtual ~Client(){};
 
 	int		getFd() const;
 	void	setFd(int const &fd);
+	int 	getStatus();
+	void	getParseChunk(std::string chunk);
 };

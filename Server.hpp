@@ -11,7 +11,10 @@
 #include <fcntl.h>
 #include <cstring>
 #include <vector>
+#include <map>
 #include "Http_req.hpp"
+#include "Client.hpp"
+#include <utility>
 
 #define PORT 9999
 #define BUFFER_SIZE 4096
@@ -21,17 +24,18 @@ class Server
 {
 private:
 
-	int				_server_fd;
-	int				_fd_count;
-	int				_poll_count;
-	int				_status;
-	sockaddr_in		_addr;
-	socklen_t		_addrlen;
-	pollfd 			*_pfds;
-	Http_req 		*_reqs;
-	
+	int						_server_fd;
+	int						_fd_count;
+	int						_fd_size;
+	sockaddr_in				_addr;
+	socklen_t				_addrlen;
+	pollfd 					*_pfds;
+	std::map<int, Client>	_clients;
+
 	void			accept_connection();
 	void			read_message(int i);
+	void			add_to_pfds(int new_fd);
+	void			del_from_pfds(int fd, int i);
 
 public:
 
