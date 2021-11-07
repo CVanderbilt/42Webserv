@@ -3,7 +3,15 @@
 Server::Server() :
 	_addrlen(sizeof(_addr)),
 	_fd_size(2),
-	_pfds(new pollfd[_fd_size])
+	_pfds(new pollfd[_fd_size]),
+	_port(8080)
+{}
+
+Server::Server(int port) :
+	_addrlen(sizeof(_addr)),
+	_fd_size(2),
+	_pfds(new pollfd[_fd_size]),
+	_port(port)
 {}
 
 void	Server::server_start()
@@ -16,7 +24,7 @@ void	Server::server_start()
 		throw ServerException("In fcntl", "failed for some reason");
 	}
 	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(PORT);
+	_addr.sin_port = htons(_port);
 	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
