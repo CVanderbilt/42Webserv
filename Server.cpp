@@ -3,7 +3,15 @@
 Server::Server() :
 	_addrlen(sizeof(_addr)),
 	_fd_size(2),
-	_pfds(new pollfd[_fd_size])
+	_pfds(new pollfd[_fd_size]),
+	_port(8080)
+{}
+
+Server::Server(int port) :
+	_addrlen(sizeof(_addr)),
+	_fd_size(2),
+	_pfds(new pollfd[_fd_size]),
+	_port(port)
 {}
 
 void	Server::server_start()
@@ -16,7 +24,7 @@ void	Server::server_start()
 		throw ServerException("In fcntl", "failed for some reason");
 	}
 	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(PORT);
+	_addr.sin_port = htons(_port);
 	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
@@ -72,19 +80,21 @@ void	Server::read_message(int i)
 //	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-		close(_pfds[i].fd);
-		_pfds[i].fd = -1;
-		return ;
+		close_fd_del_client(i);
+		std::cout << "server: recv error" << std::endl;
 	}
 	else if (numbytes == 0)
 	{
+		close_fd_del_client(i);
 		std::cout << "server: client closed connection" << std::endl;
 	}
-
-	buffer[numbytes] = '\0';
-	if (_clients.count(_pfds[i].fd))
-		_clients[_pfds[i].fd].getParseChunk(buffer);
-	std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
+	else
+	{
+		buffer[numbytes] = '\0';
+		if (_clients.count(_pfds[i].fd))
+			_clients[_pfds[i].fd].getParseChunk(buffer);
+		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
+	}
 }
 
 void	Server::server_listen()
@@ -133,11 +143,8 @@ void	Server::server_listen()
 			}
 			else if (status == 0)
 				std::cout << "Parse error" << std::endl;
-			else
-				continue;
-			close(_pfds[i].fd);
-			_clients.erase(_pfds[i].fd);
-			_pfds[i].fd = -1;
+			/*TODO: enviar al cliente página de error*/
+			close_fd_del_client(i);
 		}
 		if(_pfds[i].fd == -1)
 		{
@@ -171,6 +178,12 @@ void	Server::del_from_pfds(int fd, int i)
 	_fd_count--;
 }
 
+void	Server::close_fd_del_client(int i)
+{
+	close(_pfds[i].fd);
+	_clients.erase(_pfds[i].fd);
+	_pfds[i].fd = -1;
+}
 
 Server::ServerException::ServerException(void)
 {
