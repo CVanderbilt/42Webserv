@@ -8,7 +8,7 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void): status(Http_req::PARSE_INIT) {}
+Http_req::Http_req(void): status(Http_req::PARSE_INIT), max_size(SIZE_T_MAX) {}
 
 std::string Http_req::status_to_str(parsing_status st)
 {
@@ -30,6 +30,11 @@ void Http_req::parse_body(void)
 {
 	size_t body_len = body.length();
 
+	if (body_len > max_size)
+	{
+		status = PARSE_ERROR;
+		return ;
+	}
 	if (body_len == content_length) 							//(1)body length correct -> end
 		status = PARSE_END;
 	else if (body_len > content_length) 						//(2)body length greater than expected -> trim -> end
