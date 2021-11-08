@@ -33,6 +33,7 @@ class Http_req
 		void parse_body(void);
 
 	public:
+		size_t								max_size;
 		parsing_status status;
 		std::string							method;
 		std::string							uri;
