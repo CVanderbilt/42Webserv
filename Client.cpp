@@ -4,13 +4,17 @@
 Client::Client() : 
 	_status(-1),
 	_is_sending(0),
-	_fd(-1)
+	_fd(-1),
+	_response_sent(0),
+	_response_left(0)
 {}
 
 Client::Client(int fd) : 
 	_status(-1),
 	_is_sending(0),
-	_fd(fd)
+	_fd(fd),
+	_response_sent(0),
+	_response_left(0)
 {}
 
 Client::Client(Client const &copy) :
@@ -44,4 +48,29 @@ void	Client::getParseChunk(std::string chunk)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
+}
+
+std::string	Client::getResponse()
+{
+	return (_response);
+}
+
+size_t	Client::getResponseSent()
+{
+	return (_response_sent);
+}
+
+void	Client::setResponseSent(size_t sent)
+{
+	_response_sent = sent;
+}
+
+size_t	Client::getResponseLeft()
+{
+	return (_response_left);
+}
+
+void	Client::setResponseLeft(size_t left)
+{
+	_response_left = left;
 }

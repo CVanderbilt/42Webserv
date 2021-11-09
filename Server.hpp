@@ -41,6 +41,7 @@ private:
 	void			add_to_pfds(int new_fd);
 	void			del_from_pfds(int fd, int i);
 	void			close_fd_del_client(int i);
+	void			send_response(int i);
 
 public:
 

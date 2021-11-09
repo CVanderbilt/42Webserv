@@ -123,24 +123,7 @@ void	Server::server_listen()
 			if (_clients.count(_pfds[i].fd))
 				status = _clients[_pfds[i].fd].getStatus();
 			if (status > 0)
-			{
-				/*TODO: prepare response message*/
-				const std::string response = "HTTP/1.1 200 OK\r\n"
-							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
-							"Server: Apache/2.2.14 (Win32)\r\n"
-							"Last-Modified: Sat, 20 Nov 2004 07:16:26 GMT\r\n"
-							"ETag: \"10000000565a5-2c-3e94b66c2e680\"\r\n"
-							"Accept-Ranges: bytes\r\n"
-							"Content-Length: 44\r\n"
-							"Keep-Alive: timeout=5, max=100\r\n"
-							"Connection: Keep-Alive\r\n"
-							"Content-Type: text/html\r\n"
-							"\r\n" 
-							"<html><body><h1>It works!</h1></body></html>";
-
-				send(_pfds[i].fd, response.c_str(), response.length(), 0);
-				std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
-			}
+				send_response(i);
 			else if (status == 0)
 				std::cout << "Parse error" << std::endl;
 			/*TODO: enviar al cliente página de error*/
@@ -183,6 +166,38 @@ void	Server::close_fd_del_client(int i)
 	close(_pfds[i].fd);
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;
+}
+
+void	Server::send_response(int i)
+{
+	size_t val_sent;
+	const std::string response = "HTTP/1.1 200 OK\r\n"
+							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
+							"Server: Apache/2.2.14 (Win32)\r\n"
+							"Last-Modified: Sat, 20 Nov 2004 07:16:26 GMT\r\n"
+							"ETag: \"10000000565a5-2c-3e94b66c2e680\"\r\n"
+							"Accept-Ranges: bytes\r\n"
+							"Content-Length: 44\r\n"
+							"Keep-Alive: timeout=5, max=100\r\n"
+							"Connection: Keep-Alive\r\n"
+							"Content-Type: text/html\r\n"
+							"\r\n" 
+							"<html><body><h1>It works!</h1></body></html>";
+
+	if ((val_sent = send(_pfds[i].fd, response.c_str(), response.length(), 0)) < 0)
+		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
+	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
+	{
+		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
+		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
+	}
+	else
+	{
+		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
+		_clients[_pfds[i].fd].getResponse().clear();
+	}
+	
+	
 }
 
 Server::ServerException::ServerException(void)

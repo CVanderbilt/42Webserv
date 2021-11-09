@@ -20,6 +20,9 @@ private:
 	int			_fd;
 	int			_status;
 	Http_req	_request;
+	std::string	_response;
+	size_t		_response_sent;
+	size_t		_response_left;
 	
 public:
 
@@ -28,8 +31,13 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
-	int		getFd() const;
-	void	setFd(int const &fd);
-	int 	getStatus();
-	void	getParseChunk(std::string chunk);
+	int			getFd() const;
+	void		setFd(int const &fd);
+	int 		getStatus();
+	void		getParseChunk(std::string chunk);
+	std::string	getResponse();
+	size_t		getResponseSent();
+	void		setResponseSent(size_t sent);
+	size_t		getResponseLeft();
+	void		setResponseLeft(size_t left);
 };
