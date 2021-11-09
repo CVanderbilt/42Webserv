@@ -24,17 +24,17 @@ class Server
 {
 private:
 
-	int								_server_fd;
-	int								_fd_count;
-	int								_fd_size;
-	int								_port;
-	int								_max_client_size;
-	std::vector<std::string>		_server_name;
+	int									_server_fd;
+	int									_fd_count;
+	int									_fd_size;
+	int									_port;
+	int									_max_client_size;
+	std::vector<std::string>			_server_name;
 	std::map<std::string,std::string>	_locations;
-	sockaddr_in						_addr;
-	socklen_t						_addrlen;
-	pollfd 							*_pfds;
-	std::map<int, Client>			_clients;
+	sockaddr_in							_addr;
+	socklen_t							_addrlen;
+	pollfd 								*_pfds;
+	std::map<int, Client>				_clients;
 
 	void			accept_connection();
 	void			read_message(int i);

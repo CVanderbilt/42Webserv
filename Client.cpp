@@ -1,12 +1,12 @@
 #include "Client.hpp"
 
-
 Client::Client() : 
 	_status(-1),
 	_is_sending(0),
 	_fd(-1),
 	_response_sent(0),
-	_response_left(0)
+	_response_left(0),
+	_stat_msg(StatusMessages())
 {}
 
 Client::Client(int fd) : 
@@ -14,14 +14,18 @@ Client::Client(int fd) :
 	_is_sending(0),
 	_fd(fd),
 	_response_sent(0),
-	_response_left(0)
+	_response_left(0),
+	_stat_msg(StatusMessages())
 {}
 
 Client::Client(Client const &copy) :
 
-	_status( copy._status),
+	_status(copy._status),
 	_is_sending(copy._is_sending),
-	_fd(copy._fd)
+	_fd(copy._fd),
+	_response_sent(copy._response_sent),
+	_response_left(copy._response_left),
+	_stat_msg(copy._stat_msg)
 {} 
 
 int		Client::getFd() const
@@ -81,6 +85,8 @@ int		Client::setRespStatus()
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
+		else if (_request.body.length() > _max_body_size)
+			return (_response_status = 413);
 		else
 			return (_response_status = 400);
 	}
@@ -98,3 +104,37 @@ bool	Client::MethodAllowed(std::string method)
 	else
 		return (false);
 }
+
+void	Client::BuildResponse()
+{
+	std::stringstream stream;
+
+	stream << "HTTP/1.1 " << _response_status << _stat_msg[_response_status];
+	_response = stream.str();
+}
+
+std::map<int, std::string>	Client::StatusMessages()
+{
+	std::map<int, std::string> map;
+
+		map[200] = "OK";
+		map[201] = "Created";
+		map[202] = "Accepted";
+		map[204] = "No Content";
+		map[301] = "Moved Permanently";
+		map[302] = "Moved Temporarily";
+		map[400] = "Bad Request";
+		map[401] = "Unauthorized";
+		map[403] = "Forbidden";
+		map[404] = "Not Found";
+		map[405] = "Not Allowed";
+		map[406] = "Not Acceptable";
+		map[411] = "Length Required";
+		map[413] = "Payload Too Large";
+		map[500] = "Internal Server Error";
+		map[501] = "Not Implemented";
+		map[503] = "Service Unavailable";
+		map[505] = "HTTP Version Not Supported";
+		return (map);
+}
+

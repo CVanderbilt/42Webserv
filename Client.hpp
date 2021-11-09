@@ -11,19 +11,22 @@
 #include <fcntl.h>
 #include <cstring>
 #include <vector>
+#include <sstream> 
 #include "Http_req.hpp"
 
 class Client
 {
 private:
-	bool		_is_sending;
-	int			_fd;
-	int			_status;
-	Http_req	_request;
-	int			_response_status;
-	std::string	_response;
-	size_t		_response_sent;
-	size_t		_response_left;
+	bool						_is_sending;
+	int							_fd;
+	int							_status;
+	Http_req					_request;
+	int							_response_status;
+	std::string					_response;
+	size_t						_response_sent;
+	size_t						_response_left;
+	size_t						_max_body_size;
+	std::map<int, std::string>	_stat_msg;
 	
 public:
 
@@ -36,6 +39,7 @@ public:
 	void		setFd(int const &fd);
 	int 		getStatus();
 	void		getParseChunk(std::string chunk);
+	void		BuildResponse();
 	std::string	getResponse();
 	size_t		getResponseSent();
 	void		setResponseSent(size_t sent);
@@ -43,4 +47,5 @@ public:
 	void		setResponseLeft(size_t left);
 	int			setRespStatus();
 	bool		MethodAllowed(std::string method);
+	std::map<int, std::string>		StatusMessages();
 };

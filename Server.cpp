@@ -4,7 +4,7 @@ Server::Server() :
 	_addrlen(sizeof(_addr)),
 	_fd_size(2),
 	_pfds(new pollfd[_fd_size]),
-	_port(8080)
+	_port(9999)
 {}
 
 Server::Server(int port) :
@@ -77,7 +77,7 @@ void	Server::read_message(int i)
 	char	*buffer = new char[BUFFER_SIZE + 1];
 	int 	numbytes;
 	
-//	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
+	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
 		close_fd_del_client(i);
@@ -108,9 +108,10 @@ void	Server::server_listen()
 	}
 	for (int i = 0; i < _fd_count; i++)
 	{
+		std::cout << "estamos al principio del bucle en i = " << i << std::endl;
 		if (_pfds[i].revents & POLLIN)
 		{
-//			std::cout << "estamos en POLLIN en i = " << i << std::endl;
+			std::cout << "estamos en POLLIN en i = " << i << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
@@ -118,10 +119,11 @@ void	Server::server_listen()
 		}		
 		else if(_pfds[i].revents & POLLOUT)
 		{
-//			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
+			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
 			int status;
 			if (_clients.count(_pfds[i].fd))
 				status = _clients[_pfds[i].fd].getStatus();
+			std::cout << "status = " << status << std::endl;
 			if (status > 0)
 				send_response(i);
 			else if (status == 0)
@@ -129,11 +131,13 @@ void	Server::server_listen()
 			/*TODO: enviar al cliente página de error*/
 			close_fd_del_client(i);
 		}
+		std::cout << "estamos fuera de POLLOUT en i = " << i << std::endl;
 		if(_pfds[i].fd == -1)
 		{
 			del_from_pfds(_pfds[i].fd, i);
-			i--;
+		//	i--;
 		}
+		std::cout << "estamos al final del bucle en i = " << i << std::endl;
 	}
 }
 
@@ -170,6 +174,7 @@ void	Server::close_fd_del_client(int i)
 
 void	Server::send_response(int i)
 {
+	std::cout << "estamos en send de socket " << _pfds[i].fd << std::endl;
 	size_t val_sent;
 	const std::string response = "HTTP/1.1 200 OK\r\n"
 							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
