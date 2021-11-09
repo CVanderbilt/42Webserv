@@ -74,3 +74,27 @@ void	Client::setResponseLeft(size_t left)
 {
 	_response_left = left;
 }
+
+int		Client::setRespStatus()
+{
+	if (_status == 1)
+	{
+		if (_request.protocol.compare("HTTP/1.1") != 0)
+			return (_response_status = 505);
+		else
+			return (_response_status = 400);
+	}
+	if (MethodAllowed(_request.method) == false)
+		return (_response_status = 405);
+	return (200);
+}
+
+bool	Client::MethodAllowed(std::string method)
+{
+	if (_request.method.compare("GET") == 0 ||
+		_request.method.compare("POST") == 0 ||
+		_request.method.compare("DELETE") == 0)
+		return (true);
+	else
+		return (false);
+}

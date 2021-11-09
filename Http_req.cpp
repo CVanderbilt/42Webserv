@@ -1,6 +1,7 @@
 #include "Http_req.hpp"
 #include <iostream>
 #include <unistd.h>
+#include <limits>
 
 /*
 *	returns a std::string containing the next line.
@@ -8,7 +9,7 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void): status(Http_req::PARSE_INIT), max_size(SIZE_T_MAX) {}
+Http_req::Http_req(void): status(Http_req::PARSE_INIT), max_size(UINT64_MAX) {}
 
 std::string Http_req::status_to_str(parsing_status st)
 {

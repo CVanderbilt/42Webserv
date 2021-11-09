@@ -196,8 +196,6 @@ void	Server::send_response(int i)
 		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
 		_clients[_pfds[i].fd].getResponse().clear();
 	}
-	
-	
 }
 
 Server::ServerException::ServerException(void)

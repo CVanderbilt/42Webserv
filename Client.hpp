@@ -20,6 +20,7 @@ private:
 	int			_fd;
 	int			_status;
 	Http_req	_request;
+	int			_response_status;
 	std::string	_response;
 	size_t		_response_sent;
 	size_t		_response_left;
@@ -40,4 +41,6 @@ public:
 	void		setResponseSent(size_t sent);
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
+	int			setRespStatus();
+	bool		MethodAllowed(std::string method);
 };
