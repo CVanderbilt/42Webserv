@@ -45,7 +45,7 @@ public:
 	void		setResponseSent(size_t sent);
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
-	int			setRespStatus();
+	int			ResponseStatus();
 	bool		MethodAllowed(std::string method);
 	std::map<int, std::string>		StatusMessages();
 };

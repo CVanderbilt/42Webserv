@@ -6,6 +6,7 @@ Client::Client() :
 	_fd(-1),
 	_response_sent(0),
 	_response_left(0),
+	_max_body_size(1000000),
 	_stat_msg(StatusMessages())
 {}
 
@@ -15,6 +16,7 @@ Client::Client(int fd) :
 	_fd(fd),
 	_response_sent(0),
 	_response_left(0),
+	_max_body_size(1000000),
 	_stat_msg(StatusMessages())
 {}
 
@@ -25,6 +27,7 @@ Client::Client(Client const &copy) :
 	_fd(copy._fd),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
+	_max_body_size(copy._max_body_size),
 	_stat_msg(copy._stat_msg)
 {} 
 
@@ -79,9 +82,9 @@ void	Client::setResponseLeft(size_t left)
 	_response_left = left;
 }
 
-int		Client::setRespStatus()
+int		Client::ResponseStatus()
 {
-	if (_status == 1)
+	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
@@ -92,7 +95,7 @@ int		Client::setRespStatus()
 	}
 	if (MethodAllowed(_request.method) == false)
 		return (_response_status = 405);
-	return (200);
+	return (_response_status = 200);
 }
 
 bool	Client::MethodAllowed(std::string method)
@@ -108,8 +111,11 @@ bool	Client::MethodAllowed(std::string method)
 void	Client::BuildResponse()
 {
 	std::stringstream stream;
+	
+	stream << "HTTP/1.1 " << ResponseStatus() << " " << _stat_msg[_response_status] << "\r\n";
 
-	stream << "HTTP/1.1 " << _response_status << _stat_msg[_response_status];
+//	stream << "\r\n";
+//	stream << "<html><body><h1>It works!</h1></body></html>";
 	_response = stream.str();
 }
 

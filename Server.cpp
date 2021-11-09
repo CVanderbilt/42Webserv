@@ -77,27 +77,23 @@ void	Server::read_message(int i)
 	char	*buffer = new char[BUFFER_SIZE + 1];
 	int 	numbytes;
 	
-	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-//		close_fd_del_client(i);
-		close(_pfds[i].fd);
-		_pfds[i].fd = -1;
+		close_fd_del_client(i);
 		std::cout << "server: recv error" << std::endl;
-		return ;
 	}
 	else if (numbytes == 0)
 	{
-//		close_fd_del_client(i);
+		close_fd_del_client(i);
 		std::cout << "server: client closed connection" << std::endl;
 	}
-//	else
-//	{
+	else
+	{
 		buffer[numbytes] = '\0';
 		if (_clients.count(_pfds[i].fd))
 			_clients[_pfds[i].fd].getParseChunk(buffer);
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
-//	}
+	}
 }
 
 void	Server::server_listen()
@@ -111,7 +107,6 @@ void	Server::server_listen()
 	}
 	for (int i = 0; i < _fd_count; i++)
 	{
-//		std::cout << "estamos al principio del bucle en i = " << i << std::endl;
 		if (_pfds[i].revents & POLLIN)
 		{
 //			std::cout << "estamos en POLLIN en i = " << i << std::endl;
@@ -126,23 +121,20 @@ void	Server::server_listen()
 			int status;
 			if (_clients.count(_pfds[i].fd))
 				status = _clients[_pfds[i].fd].getStatus();
-//			std::cout << "status = " << status << std::endl;
 			if (status > 0)
 				send_response(i);
 			else if (status == 0)
 				std::cout << "Parse error" << std::endl;
+			else
+				continue;
 			/*TODO: enviar al cliente página de error*/
-			close(_pfds[i].fd);
-			_clients.erase(_pfds[i].fd);
-			_pfds[i].fd = -1;
+			close_fd_del_client(i);
 		}
-//		std::cout << "estamos fuera de POLLOUT en i = " << i << std::endl;
 		if(_pfds[i].fd == -1)
 		{
 			del_from_pfds(_pfds[i].fd, i);
 			i--;
 		}
-//		std::cout << "estamos al final del bucle en i = " << i << std::endl;
 	}
 }
 
@@ -179,22 +171,18 @@ void	Server::close_fd_del_client(int i)
 
 void	Server::send_response(int i)
 {
-	std::cout << "estamos en send de socket " << _pfds[i].fd << std::endl;
 	size_t val_sent;
-	const std::string response = "HTTP/1.1 200 OK\r\n"
-							"Date: Sun, 18 Oct 2009 10:47:06 GMT\r\n"
-							"Server: Apache/2.2.14 (Win32)\r\n"
-							"Last-Modified: Sat, 20 Nov 2004 07:16:26 GMT\r\n"
-							"ETag: \"10000000565a5-2c-3e94b66c2e680\"\r\n"
-							"Accept-Ranges: bytes\r\n"
-							"Content-Length: 44\r\n"
-							"Keep-Alive: timeout=5, max=100\r\n"
-							"Connection: Keep-Alive\r\n"
+/*	const std::string response = "HTTP/1.1 400 Bad Request\r\n"
+//							"Content-Length: 44\r\n"
 							"Content-Type: text/html\r\n"
 							"\r\n" 
 							"<html><body><h1>It works!</h1></body></html>";
-
-	if ((val_sent = send(_pfds[i].fd, response.c_str(), response.length(), 0)) < 0)
+	send(_pfds[i].fd, response.c_str(), response.length(), 0);
+	std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
+*/
+	_clients[_pfds[i].fd].BuildResponse();
+	std::cout << _clients[_pfds[i].fd].getResponse().c_str() << std::endl;
+	if ((val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0)) < 0)
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
 	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
 	{
