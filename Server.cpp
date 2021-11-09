@@ -80,21 +80,24 @@ void	Server::read_message(int i)
 	std::cout << "leyendo del fd = " << _pfds[i].fd << std::endl;
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-		close_fd_del_client(i);
+//		close_fd_del_client(i);
+		close(_pfds[i].fd);
+		_pfds[i].fd = -1;
 		std::cout << "server: recv error" << std::endl;
+		return ;
 	}
 	else if (numbytes == 0)
 	{
-		close_fd_del_client(i);
+//		close_fd_del_client(i);
 		std::cout << "server: client closed connection" << std::endl;
 	}
-	else
-	{
+//	else
+//	{
 		buffer[numbytes] = '\0';
 		if (_clients.count(_pfds[i].fd))
 			_clients[_pfds[i].fd].getParseChunk(buffer);
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
-	}
+//	}
 }
 
 void	Server::server_listen()
@@ -108,10 +111,10 @@ void	Server::server_listen()
 	}
 	for (int i = 0; i < _fd_count; i++)
 	{
-		std::cout << "estamos al principio del bucle en i = " << i << std::endl;
+//		std::cout << "estamos al principio del bucle en i = " << i << std::endl;
 		if (_pfds[i].revents & POLLIN)
 		{
-			std::cout << "estamos en POLLIN en i = " << i << std::endl;
+//			std::cout << "estamos en POLLIN en i = " << i << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
@@ -119,25 +122,27 @@ void	Server::server_listen()
 		}		
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
+//			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
 			int status;
 			if (_clients.count(_pfds[i].fd))
 				status = _clients[_pfds[i].fd].getStatus();
-			std::cout << "status = " << status << std::endl;
+//			std::cout << "status = " << status << std::endl;
 			if (status > 0)
 				send_response(i);
 			else if (status == 0)
 				std::cout << "Parse error" << std::endl;
 			/*TODO: enviar al cliente página de error*/
-			close_fd_del_client(i);
+			close(_pfds[i].fd);
+			_clients.erase(_pfds[i].fd);
+			_pfds[i].fd = -1;
 		}
-		std::cout << "estamos fuera de POLLOUT en i = " << i << std::endl;
+//		std::cout << "estamos fuera de POLLOUT en i = " << i << std::endl;
 		if(_pfds[i].fd == -1)
 		{
 			del_from_pfds(_pfds[i].fd, i);
-		//	i--;
+			i--;
 		}
-		std::cout << "estamos al final del bucle en i = " << i << std::endl;
+//		std::cout << "estamos al final del bucle en i = " << i << std::endl;
 	}
 }
 
