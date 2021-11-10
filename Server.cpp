@@ -4,7 +4,7 @@ Server::Server() :
 	_addrlen(sizeof(_addr)),
 	_fd_size(2),
 	_pfds(new pollfd[_fd_size]),
-	_port(9999)
+	_port(8080)
 {}
 
 Server::Server(int port) :
@@ -172,16 +172,9 @@ void	Server::close_fd_del_client(int i)
 void	Server::send_response(int i)
 {
 	size_t val_sent;
-/*	const std::string response = "HTTP/1.1 400 Bad Request\r\n"
-//							"Content-Length: 44\r\n"
-							"Content-Type: text/html\r\n"
-							"\r\n" 
-							"<html><body><h1>It works!</h1></body></html>";
-	send(_pfds[i].fd, response.c_str(), response.length(), 0);
-	std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
-*/
+
 	_clients[_pfds[i].fd].BuildResponse();
-	std::cout << _clients[_pfds[i].fd].getResponse().c_str() << std::endl;
+//	std::cout << _clients[_pfds[i].fd].getResponse().c_str() << std::endl;
 	if ((val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0)) < 0)
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
 	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())

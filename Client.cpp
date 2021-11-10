@@ -2,7 +2,6 @@
 
 Client::Client() : 
 	_status(-1),
-	_is_sending(0),
 	_fd(-1),
 	_response_sent(0),
 	_response_left(0),
@@ -12,7 +11,6 @@ Client::Client() :
 
 Client::Client(int fd) : 
 	_status(-1),
-	_is_sending(0),
 	_fd(fd),
 	_response_sent(0),
 	_response_left(0),
@@ -23,7 +21,6 @@ Client::Client(int fd) :
 Client::Client(Client const &copy) :
 
 	_status(copy._status),
-	_is_sending(copy._is_sending),
 	_fd(copy._fd),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
@@ -94,7 +91,7 @@ int		Client::ResponseStatus()
 			return (_response_status = 400);
 	}
 	if (MethodAllowed(_request.method) == false)
-		return (_response_status = 405);
+		return (_response_status = 501);
 	return (_response_status = 200);
 }
 
@@ -113,10 +110,64 @@ void	Client::BuildResponse()
 	std::stringstream stream;
 	
 	stream << "HTTP/1.1 " << ResponseStatus() << " " << _stat_msg[_response_status] << "\r\n";
-
-//	stream << "\r\n";
+	stream << "Content-Type: text/html" << "\r\n";
+	stream << "\r\n";
 //	stream << "<html><body><h1>It works!</h1></body></html>";
+	if (_request.method.compare("GET") == 0)
+		stream << BuildGet();
+	else if (_request.method.compare("POST") == 0)
+		BuildPost();
+	else if (_request.method.compare("DELETE") == 0)
+		stream << BuildDelete();
 	_response = stream.str();
+	_response_left = _response.length();
+}
+
+std::string	Client::BuildGet()
+{
+	std::string	ret;
+
+	if (_is_CGI)
+//		ExecuteCGI();
+;/*TODO: build function to execute CGI*/
+	if (_response_status != 204 && !_is_CGI)
+	{
+		if (_is_autoindex)	
+//			ret = BuildAutoindex();
+;/*TODO: build function to build an autoindex htmlweb*/
+		else
+//			ret = ExtractFile();
+;/*TODO: build function to extract data from file*/
+	}
+	return (ret);
+}
+
+void	Client::BuildPost()
+{
+	if (_is_CGI)
+//		ExecuteCGI();
+;/*TODO: build function to execute CGI*/
+	else
+	{
+		std::ofstream file(_req_file);
+
+		if (file.good())
+		{
+			file << _request.body << std::endl;
+			file.close();
+		}
+		else
+			std::cout << "server: internal error" << std::endl;
+	}
+}
+
+std::string	Client::BuildDelete()
+{
+	std::string	ret;
+
+	unlink(_req_file.c_str());
+	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
+	return (ret);
 }
 
 std::map<int, std::string>	Client::StatusMessages()
@@ -143,4 +194,3 @@ std::map<int, std::string>	Client::StatusMessages()
 		map[505] = "HTTP Version Not Supported";
 		return (map);
 }
-
