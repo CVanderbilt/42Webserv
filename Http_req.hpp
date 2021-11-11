@@ -34,7 +34,7 @@ class Http_req
 
 	public:
 		size_t								max_size;
-		parsing_status status;
+		parsing_status 						status;
 		std::string							method;
 		std::string							uri;
 		std::string							protocol;
