@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "utils.hpp"
 
 Server::Server() :
 	_addrlen(sizeof(_addr)),
@@ -12,6 +13,55 @@ Server::Server(int port) :
 	_fd_size(2),
 	_pfds(new pollfd[_fd_size]),
 	_port(port)
+{}
+
+Server::Server(server_config const& s) :
+	_addrlen(sizeof(_addr)),
+	_fd_size(2),
+	_pfds(new pollfd[_fd_size]),
+	_port(8080)
+{
+	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
+	{
+		if (it->first == "port" && isPort(it->second))
+			_port = std::stoi(it->second);
+		else if (it->first == "server_name")
+			_server_name = splitIntoVector(it->second, " ");
+		else
+			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
+	}
+
+	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); it++)
+	{
+		int idx = _server_location.size();
+		_server_location.resize(_server_location.size() + 1);
+		_server_location[idx].path = it->path;
+		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
+		{
+			if (lit->first == "root")
+				_server_location[idx].root = lit->second;
+			else if (lit->first == "autoindex")
+				_server_location[idx].autoindex = true;
+			else if (lit->first == "cgi")
+				_server_location[idx].cgi = splitIntoVector(lit->second, " ");
+			else if (lit->first == "index")
+				_server_location[idx].index = splitIntoVector(lit->second, " ");
+			else
+				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
+
+		}
+	}
+}
+
+Server::server_location::server_location():
+	autoindex(false)
+{}
+Server::server_location::server_location(const server_location& other):
+	path(other.path),
+	root(other.root),
+	autoindex(other.autoindex),
+	cgi(other.cgi),
+	index(other.index)
 {}
 
 void	Server::server_start()
@@ -98,8 +148,7 @@ void	Server::read_message(int i)
 
 void	Server::server_listen()
 {
-	
-	int poll_count = poll(_pfds, _fd_count, -1);
+	int poll_count = poll(_pfds, _fd_count, 1);
 	if (poll_count == -1)
 	{
 		close(_server_fd);
