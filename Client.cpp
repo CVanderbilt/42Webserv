@@ -167,10 +167,10 @@ void	Client::BuildPost()
 			file.close();
 		}
 		else
-			{
-				_response_status = 500;
-				std::cout << "server: internal error" << std::endl;
-			}
+		{
+			_response_status = 500;
+			std::cout << "server: internal error" << std::endl;
+		}
 	}
 }
 
@@ -199,6 +199,7 @@ std::map<int, std::string>	Client::StatusMessages()
 		map[404] = "Not Found";
 		map[405] = "Not Allowed";
 		map[406] = "Not Acceptable";
+		map[408] = "Request Time-out";
 		map[411] = "Length Required";
 		map[413] = "Payload Too Large";
 		map[500] = "Internal Server Error";
