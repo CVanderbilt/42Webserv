@@ -55,5 +55,6 @@ public:
 	std::string	BuildAutoindex();
 	std::string	ExtractFile();
 	void		ExecuteCGI();
+	std::string	BuildHeader();
 	std::map<int, std::string>		StatusMessages();
 };

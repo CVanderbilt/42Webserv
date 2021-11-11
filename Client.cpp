@@ -81,6 +81,8 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus()
 {
+	if (_response_status == 500)
+		return 500;
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
@@ -107,22 +109,30 @@ bool	Client::MethodAllowed(std::string method)
 
 void	Client::BuildResponse()
 {
-	std::stringstream stream;
+	std::stringstream	stream;
+	std::string			body;
 	
-	stream << "HTTP/1.1 " << ResponseStatus() << " " << _stat_msg[_response_status] << "\r\n";
-	stream << "Content-Type: text/html" << "\r\n";
-	stream << "\r\n";
-//	stream << "<html><body><h1>It works!</h1></body></html>";
+	ResponseStatus();
 	if (_request.method.compare("GET") == 0)
-		stream << BuildGet();
+		body = BuildGet();
 	else if (_request.method.compare("POST") == 0)
 		BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
-		stream << BuildDelete();
+		body = BuildDelete();
+	stream << BuildHeader();
+	stream << body;
 	_response = stream.str();
 	_response_left = _response.length();
 }
 
+std::string	Client::BuildHeader()
+{
+	std::stringstream	stream;
+	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
+	stream << "Content-Type: text/html" << "\r\n";
+	stream << "\r\n";
+	return (stream.str());
+}
 std::string	Client::BuildGet()
 {
 	std::string	ret;
@@ -157,7 +167,10 @@ void	Client::BuildPost()
 			file.close();
 		}
 		else
-			std::cout << "server: internal error" << std::endl;
+			{
+				_response_status = 500;
+				std::cout << "server: internal error" << std::endl;
+			}
 	}
 }
 
