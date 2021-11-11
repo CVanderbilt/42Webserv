@@ -15,13 +15,26 @@
 #include "Http_req.hpp"
 #include "Client.hpp"
 #include <utility>
+#include "Config.hpp"
 
-//#define PORT 9999
+#define PORT 8080
 #define BUFFER_SIZE 4096
 #define MAX_CONNEC 20
 
 class Server
 {
+public:
+	struct server_location 
+	{
+		std::string					root;
+		std::string					path;
+		bool						autoindex;
+		std::vector<std::string>	cgi;
+		std::vector<std::string>	index;
+
+		server_location();
+		server_location(const server_location& other);
+	};
 private:
 
 	int								_server_fd;
@@ -30,7 +43,7 @@ private:
 	int								_port;
 	int								_max_client_size;
 	std::vector<std::string>		_server_name;
-	std::map<std::string,std::string>	_locations;
+	std::vector<server_location>	_server_location;
 	sockaddr_in						_addr;
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
@@ -46,19 +59,10 @@ public:
 
 	Server(void);
 	Server(int port);
-	//Server(Config config);
+	Server(server_config const& s);
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();
-
-	struct Location
-	{
-		std::string					root;
-		bool						autoindex;
-		std::string					index;
-		std::vector<std::string>	methods;
-	};
-	
 
 	class ServerException : public std::exception
 	{
