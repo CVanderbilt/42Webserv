@@ -11,7 +11,7 @@ int main()
 	try
 	{
 		/* code */
-		config = check_config("/Users/test/Desktop/wardit/reqsize/default.conf");
+		config = check_config("./default.conf");
 	}
 	catch(const std::exception& e)
 	{
@@ -55,10 +55,10 @@ int main()
 	size_t idx = 0;
 	while (1)
 	{
-		std::cout << "server: " << idx << std::endl;
+//		std::cout << "server: " << idx << std::endl;
 		servers[idx]->server_listen();
 		idx += 1;
 		idx %= servers.size();
-		std::cout << "index++" << std::endl;
+//		std::cout << "index++" << std::endl;
 	}
 }

@@ -30,7 +30,7 @@ struct location_config
 
 struct server_config
 {
-	std::map<std::string, std::string>opts;
+	std::map<std::string, std::string> opts;
 	std::vector<location_config> loc;
 
 	void parse_config(std::ifstream& file);
