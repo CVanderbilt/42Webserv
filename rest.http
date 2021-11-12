@@ -2,7 +2,7 @@
 
 @host = http://localhost
 
-@port = 4430
+@port = 8080
 
 ###
 

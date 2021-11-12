@@ -13,6 +13,7 @@
 #include <vector>
 #include <sstream> 
 #include "Http_req.hpp"
+#include "utils.hpp"
 
 class Client
 {
@@ -53,7 +54,6 @@ public:
 	void		BuildPost();
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
-	std::string	ExtractFile();
 	void		ExecuteCGI();
 	std::string	BuildHeader();
 	std::map<int, std::string>		StatusMessages();

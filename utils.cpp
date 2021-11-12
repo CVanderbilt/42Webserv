@@ -28,3 +28,25 @@ bool isPort(std::string p)
 		return (false);
 	return (true);
 }
+
+int FileExists(std::string file)
+{
+	struct stat st;
+
+	return (stat(file.c_str(), &st));
+}
+
+std::string ExtractFile(std::string file)
+{
+	std::string			buf;
+	std::ifstream		ifs(file);
+	std::stringstream	stream;
+
+	if (ifs.is_open())
+	{
+		while (std::getline(ifs, buf))
+			stream << buf << "\n";
+		ifs.close();
+	}
+	return (stream.str());
+}

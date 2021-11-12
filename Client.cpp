@@ -81,8 +81,7 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus()
 {
-	if (_response_status == 500)
-		return 500;
+	/*TODO: completar con más codigos, como el 404...*/
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
@@ -111,7 +110,6 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
-	
 	ResponseStatus();
 	if (_request.method.compare("GET") == 0)
 		body = BuildGet();
@@ -146,8 +144,7 @@ std::string	Client::BuildGet()
 //			ret = BuildAutoindex();
 ;/*TODO: build function to build an autoindex htmlweb*/
 		else
-//			ret = ExtractFile();
-;/*TODO: build function to extract data from file*/
+			ret = ExtractFile(_req_file);
 	}
 	return (ret);
 }
