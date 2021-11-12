@@ -135,11 +135,27 @@ std::string	Client::BuildGet()
 {
 	std::string	ret;
 
-	if (_is_CGI)
+	//std::cout << "building get, (uri): >" << _request.uri << "<" << std::endl;
+	//check if is asking for file(including cgi) or an index
+	//	is an index if uri equals path of location
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+	std::cout << "uri: >" << _request.uri << "<, server_location: " << s << std::endl;
+	if (s)
+	{
+		/*
+		*	locationByUri not working properly
+		*/
+		std::cout << "autoindex: " << s->autoindex << std::endl;
+		std::cout << "path: " << s->path << std::endl;
+		std::cout << "root: " << s->root << std::endl;
+	}
+
+	if (_is_CGI) // de momento nunca es cgi
 //		ExecuteCGI();
 ;/*TODO: build function to execute CGI*/
 	if (_response_status != 204 && !_is_CGI)
 	{
+
 		if (_is_autoindex)	
 //			ret = BuildAutoindex();
 ;/*TODO: build function to build an autoindex htmlweb*/
@@ -204,4 +220,9 @@ std::map<int, std::string>	Client::StatusMessages()
 		map[503] = "Service Unavailable";
 		map[505] = "HTTP Version Not Supported";
 		return (map);
+}
+
+void		Client::setServer(std::vector<server_location> *s)
+{
+	_s = s;
 }

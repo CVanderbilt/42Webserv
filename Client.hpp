@@ -30,6 +30,7 @@ private:
 	bool						_is_CGI;
 	bool						_is_autoindex;
 	std::string					_req_file;
+	const std::vector<server_location>	*_s;
 	
 public:
 
@@ -38,6 +39,7 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
+	void		setServer(std::vector<server_location> *s);
 	int			getFd() const;
 	void		setFd(int const &fd);
 	int 		getStatus();

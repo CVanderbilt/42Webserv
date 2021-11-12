@@ -50,19 +50,11 @@ Server::Server(server_config const& s) :
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 
 		}
+		/*
+		*	to do: check if a mandatory item was not present (ex root or path).
+		*/
 	}
 }
-
-Server::server_location::server_location():
-	autoindex(false)
-{}
-Server::server_location::server_location(const server_location& other):
-	path(other.path),
-	root(other.root),
-	autoindex(other.autoindex),
-	cgi(other.cgi),
-	index(other.index)
-{}
 
 void	Server::server_start()
 {
@@ -109,6 +101,7 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
+		new_client.setServer(&_server_location);
 
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;

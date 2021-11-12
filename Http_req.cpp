@@ -75,7 +75,7 @@ void Http_req::parse_method(void)
 		status = PARSE_ERROR;
 		return ;
 	}
-	uri = line.substr(eol + 1, sep - eol);
+	uri = line.substr(eol + 1, sep - eol - 1);
 	
 	protocol = line.substr(sep + 1, line.npos);
 	if (protocol != "HTTP/1.1")

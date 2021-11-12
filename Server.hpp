@@ -16,6 +16,7 @@
 #include "Client.hpp"
 #include <utility>
 #include "Config.hpp"
+#include "utils.hpp"
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
@@ -23,18 +24,6 @@
 
 class Server
 {
-public:
-	struct server_location 
-	{
-		std::string					root;
-		std::string					path;
-		bool						autoindex;
-		std::vector<std::string>	cgi;
-		std::vector<std::string>	index;
-
-		server_location();
-		server_location(const server_location& other);
-	};
 private:
 
 	int								_server_fd;
