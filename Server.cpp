@@ -46,6 +46,11 @@ Server::Server(server_config const& s) :
 				_server_location[idx].cgi = splitIntoVector(lit->second, " ");
 			else if (lit->first == "index")
 				_server_location[idx].index = splitIntoVector(lit->second, " ");
+			else if (lit->first == "write_enabled")
+			{
+				_server_location[idx].write_enabled = true;
+				_server_location[idx].write_path = lit->second;
+			}
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 

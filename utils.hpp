@@ -18,6 +18,8 @@ struct server_location
 	bool						autoindex;
 	std::vector<std::string>	cgi;
 	std::vector<std::string>	index;
+	bool						write_enabled;
+	std::string					write_path;
 	server_location();
 	server_location(const server_location& other);
 };
