@@ -138,15 +138,6 @@ std::string	Client::BuildHeader(size_t size)
 	return (stream.str());
 }
 
-std::string	Client::BuildHeader()
-{
-	std::stringstream	stream;
-	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
-	stream << "Content-Type: text/html" << "\r\n";
-	stream << "\r\n";
-	return (stream.str());
-}
-
 std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
 {
 	std::string ret = "<!DOCTYPE html>\n";
