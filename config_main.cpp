@@ -4,14 +4,14 @@
 #include "Config.hpp"
 #include "Server.hpp"
 
-int main()
+int main(int argc, char *argv[])
 {
 	std::vector<server_config> config;
 
 	try
 	{
 		/* code */
-		config = check_config("./default.conf");
+		config = check_config(argv[1]);
 	}
 	catch(const std::exception& e)
 	{

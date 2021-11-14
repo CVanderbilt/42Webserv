@@ -167,22 +167,29 @@ std::string	Client::BuildGet()
 
 void	Client::BuildPost()
 {
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+
 	if (_is_CGI)
 //		ExecuteCGI();
 ;/*TODO: build function to execute CGI*/
-	else
+	else if (s->write_enabled)
 	{
-		std::ofstream file(_req_file);
+		std::ofstream file;
 
-		if (file.good())
+		_req_file = s->write_path;
+		if (FileExists(_req_file))
 		{
-			file << _request.body << std::endl;
-			file.close();
-		}
-		else
-		{
-			_response_status = 500;
-			std::cout << "server: internal error" << std::endl;
+			file.open(_req_file, std::ios::app);
+			if (file.good())
+			{
+				file << _request.body << std::endl;
+				file.close();
+			}
+			else
+			{
+				_response_status = 500;
+				std::cout << "server: internal error" << std::endl;
+			}
 		}
 	}
 }
