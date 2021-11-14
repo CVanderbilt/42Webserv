@@ -17,9 +17,9 @@ NAME = webserv
 
 CLANG = clang++
 
-FLAGS = -Wall -Werror -Wextra -std=c++98
+FLAGS = -Wall -Werror -Wextra #-std=c++98
 
-#MKDIROBJS = @mkdir -p ${OBJS_PATH}
+MKDIROBJS = @mkdir -p ${OBJS_PATH}
 
 OBJS = ${SRCS:.cpp=.o}
 
@@ -30,7 +30,7 @@ DEBUG_FLAG = -D DEBUG_MODE
 #----------------------Rules----------------------------#
 
 .cpp.o:
-#			${MKDIROBJS}
+			${MKDIROBJS}
 			${CLANG} ${FLAGS} -c $< -o ${addprefix ${OBJS_PATH}, ${notdir ${<:.cpp=.o}}}
 
 $(NAME):	${OBJS}

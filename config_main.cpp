@@ -6,11 +6,12 @@
 
 int main(int argc, char *argv[])
 {
+	
 	std::vector<server_config> config;
-
+	if (argc != 2)
+		std::cerr << "Wrong number of arguments" << std::endl;
 	try
 	{
-		/* code */
 		config = check_config(argv[1]);
 	}
 	catch(const std::exception& e)

@@ -27,10 +27,10 @@ class Server
 private:
 
 	int								_server_fd;
-	int								_fd_count;
-	int								_fd_size;
+	size_t							_fd_count;
+	size_t							_fd_size;
 	int								_port;
-	int								_max_client_size;
+//	int								_max_client_size;
 	std::vector<std::string>		_server_name;
 	std::vector<server_location>	_server_location;
 	sockaddr_in						_addr;
@@ -41,7 +41,7 @@ private:
 	void			accept_connection();
 	void			read_message(int i);
 	void			add_to_pfds(int new_fd);
-	void			del_from_pfds(int fd, int i);
+	void			del_from_pfds(int i);
 	void			close_fd_del_client(int i);
 	void			send_response(int i);
 

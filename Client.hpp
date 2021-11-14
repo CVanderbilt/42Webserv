@@ -51,7 +51,7 @@ public:
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
 	int			ResponseStatus();
-	bool		MethodAllowed(std::string method);
+	bool		MethodAllowed();
 	std::string	BuildGet();
 	void		BuildPost();
 	std::string	BuildDelete();

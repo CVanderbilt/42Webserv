@@ -9,7 +9,10 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void): status(Http_req::PARSE_INIT), max_size(UINT64_MAX) {}
+Http_req::Http_req(void):
+	max_size(UINT64_MAX),
+	status(Http_req::PARSE_INIT)
+{}
 
 std::string Http_req::status_to_str(parsing_status st)
 {
@@ -143,7 +146,6 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 				break ;
 		}
 	}
-	//getchar();
 	if (status == PARSE_END || status == PARSE_ERROR)
 		_aux_buff.clear();
 	return (status);

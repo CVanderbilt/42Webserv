@@ -3,8 +3,6 @@
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {
 	std::vector<std::string> ret;
-	size_t start = 0;
-	size_t sep_size = sep.size();
 
 	while (1)
 	{
@@ -20,7 +18,7 @@ std::vector<std::string> splitIntoVector(std::string str, const std::string& sep
 
 bool isPort(std::string p)
 {
-	for (int i = 0; i < p.size(); i++)
+	for (size_t i = 0; i < p.size(); i++)
 		if (!std::isdigit(p[i]))
 			return (false);
 	int n = std::stoi(p);
@@ -56,7 +54,7 @@ bool checkUri(const std::string& path, const std::string& uri)
 {
 	size_t path_len = path.length();
 	size_t uri_len = uri.length();
-	for (int i = 0; i < path_len; i++)
+	for (size_t i = 0; i < path_len; i++)
 	{
 		if (i == uri_len || path[i] != uri[i])
 			return (false);
@@ -66,7 +64,7 @@ bool checkUri(const std::string& path, const std::string& uri)
 
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
 {
-	for (int i = 0; i < locs.size(); i++)
+	for (size_t i = 0; i < locs.size(); i++)
 		if (checkUri(locs[i].path, uri))
 		{
 			return (&locs[i]);
@@ -78,8 +76,8 @@ server_location::server_location():
 	autoindex(false)
 {}
 server_location::server_location(const server_location& other):
-	path(other.path),
 	root(other.root),
+	path(other.path),
 	autoindex(other.autoindex),
 	cgi(other.cgi),
 	index(other.index)

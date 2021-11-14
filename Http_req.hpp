@@ -26,7 +26,7 @@ class Http_req
 
 	private:
 		std::string _aux_buff;
-		int			_content_size;
+//		int			_content_size;
 
 		void parse_method(void);
 		void parse_head(void);
@@ -40,7 +40,7 @@ class Http_req
 		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;
-		int									content_length;
+		size_t								content_length;
 		Http_req(void);
 
 		parsing_status parse_chunk(std::string chunk);
