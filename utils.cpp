@@ -36,19 +36,17 @@ int FileExists(std::string file)
 	return (stat(file.c_str(), &st));
 }
 
-std::string ExtractFile(std::string file)
+std::string ExtractFile(std::string filename)
 {
-	std::string			buf;
-	std::ifstream		ifs(file);
-	std::stringstream	stream;
+	
+	std::ostringstream contents;
+    std::ifstream in(filename, std::ios::in | std::ios::binary);
 
-	if (ifs.is_open())
-	{
-		while (std::getline(ifs, buf))
-			stream << buf << "\n";
-		ifs.close();
-	}
-	return (stream.str());
+    if (!in.is_open() || !in.good())
+		throw std::exception();
+	contents << in.rdbuf();
+	in.close();
+	return contents.str();
 }
 
 //	uri:	/locations/some_file
