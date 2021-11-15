@@ -45,21 +45,28 @@ int main(int argc, char *argv[])
 		}
 		std::cout << "----------------------------------------------------------------------------------------" << std::endl;
 	}
-
-	std::vector<Server*>servers;
-	for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
+	try
 	{
-		servers.push_back(new Server(*it));
-		servers[servers.size() - 1]->server_start();
-	}
+		std::vector<Server*>servers;
+		for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
+		{
+			servers.push_back(new Server(*it));
+			servers[servers.size() - 1]->server_start();
+		}
 
-	size_t idx = 0;
-	while (1)
-	{
-//		std::cout << "server: " << idx << std::endl;
-		servers[idx]->server_listen();
-		idx += 1;
-		idx %= servers.size();
-//		std::cout << "index++" << std::endl;
+		size_t idx = 0;
+		while (1)
+		{
+	//		std::cout << "server: " << idx << std::endl;
+			servers[idx]->server_listen();
+			idx += 1;
+			idx %= servers.size();
+	//		std::cout << "index++" << std::endl;
+		}
 	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 }

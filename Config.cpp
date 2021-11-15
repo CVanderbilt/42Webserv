@@ -123,7 +123,7 @@ void server_config::parse_config(std::ifstream& file)
 */
 std::vector<server_config> check_config(std::string config_file)
 {
-	std::ifstream file(config_file);
+	std::ifstream file(config_file.c_str());
 	std::string str;
 	std::vector<server_config> ret;
 

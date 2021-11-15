@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cstdlib>
 
 typedef enum http_parse_err
 {

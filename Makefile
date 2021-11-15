@@ -17,30 +17,33 @@ NAME = webserv
 
 CLANG = clang++
 
-FLAGS = -Wall -Werror -Wextra #-std=c++98
+FLAGS = -Wall -Werror -Wextra -std=c++98
 
 MKDIROBJS = @mkdir -p ${OBJS_PATH}
 
-OBJS = ${SRCS:.cpp=.o}
+OBJ = 	${SRCS:.cpp=.o}
+
+OBJS = 	${addprefix ${OBJS_PATH}, ${OBJ}}
 
 RM = rm -rf
 
 #----------------------Rules----------------------------#
 
-.cpp.o:
+${OBJS_PATH}%.o : %.cpp
 			${MKDIROBJS}
-			${CLANG} ${FLAGS} -c $< -o ${addprefix ${OBJS_PATH}, ${notdir ${<:.cpp=.o}}}
+			${CLANG} $(FLAGS) -c $< -o $@
 
 $(NAME):	${OBJS}
-			${CLANG} ${FLAGS} ${addprefix ${OBJS_PATH}, ${notdir ${OBJS}}} -o ${NAME}
+			${CLANG} ${FLAGS} ${OBJS} -o ${NAME}
 
-all:		$(NAME)
-
-re:			fclean all
+all:		${NAME}
 
 clean:
 			${RM} ${OBJS_PATH}
 
-fclean:
+fclean:		clean
 			${RM} ${NAME}
+
+re:			fclean all
+
 .phony:		clean fclean re all

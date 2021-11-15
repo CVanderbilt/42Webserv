@@ -217,7 +217,6 @@ std::string	Client::BuildGet()
 		if (s->autoindex)
 			return (GetAutoIndex(s->root, s->path));
 		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
-
 	}
 	else
 	{
@@ -230,7 +229,6 @@ std::string	Client::BuildGet()
 			std::cout << "file not found, return error page if available" << std::endl;
 			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 		}
-		
 	}
 	return (ret);
 }
@@ -249,7 +247,7 @@ void	Client::BuildPost()
 		_req_file = s->write_path;
 		if (FileExists(_req_file))
 		{
-			file.open(_req_file, std::ios::app);
+			file.open(_req_file.c_str(), std::ios::app);
 			if (file.good())
 			{
 				file << _request.body << std::endl;

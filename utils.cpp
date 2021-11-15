@@ -22,7 +22,7 @@ bool isPort(std::string p)
 	for (size_t i = 0; i < p.size(); i++)
 		if (!std::isdigit(p[i]))
 			return (false);
-	int n = std::stoi(p);
+	int n = atoi(p.c_str());
 	if (n < 0 || n > 65535)
 		return (false);
 	return (true);
@@ -39,7 +39,7 @@ std::string ExtractFile(std::string filename)
 {
 	
 	std::ostringstream contents;
-    std::ifstream in(filename, std::ios::in | std::ios::binary);
+    std::ifstream in(filename.c_str(), std::ios::in | std::ios::binary);
 
     if (!in.is_open() || !in.good())
 		throw std::exception();
@@ -67,13 +67,13 @@ const server_location *locationByUri(const std::string& uri, const std::vector<s
 {
 	size_t pos = uri.find_last_of('/');
 	if (pos == uri.npos)
-		return (nullptr);
+		return (NULL);
 	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
 	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
 	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
 		if (it->path == uri_directory)
 			return (&(*it));
-	return (nullptr);
+	return (NULL);
 }
 
 server_location::server_location():

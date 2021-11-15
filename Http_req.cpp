@@ -10,7 +10,7 @@
 */
 
 Http_req::Http_req(void):
-	max_size(UINT64_MAX),
+	max_size(1000000),
 	status(Http_req::PARSE_INIT)
 {}
 

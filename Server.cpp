@@ -24,7 +24,7 @@ Server::Server(server_config const& s) :
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
-			_port = std::stoi(it->second);
+			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
 			_server_name = splitIntoVector(it->second, " ");
 		else
