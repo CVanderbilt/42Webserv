@@ -35,13 +35,18 @@ Server::Server(server_config const& s) :
 	{
 		int idx = _server_location.size();
 		_server_location.resize(_server_location.size() + 1);
-		_server_location[idx].path = it->path;
+		_server_location[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
-				_server_location[idx].root = lit->second;
+				_server_location[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
 			else if (lit->first == "autoindex")
-				_server_location[idx].autoindex = true;
+			{
+				if (lit->second == "on")
+					_server_location[idx].autoindex = true;
+				else if (lit->second != "off")
+					throw ServerException("Configuration", "Invalid value of autoindex field");
+			}
 			else if (lit->first == "cgi")
 				_server_location[idx].cgi = splitIntoVector(lit->second, " ");
 			else if (lit->first == "index")
@@ -128,7 +133,8 @@ void	Server::read_message(int i)
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
 		close_fd_del_client(i);
-		std::cout << "server: recv error" << std::endl;
+		perror("recv");
+		std::cout << "server: recv error---------------------------------------------------------------------" << std::endl;
 	}
 	else if (numbytes == 0)
 	{
@@ -161,7 +167,7 @@ void	Server::server_listen()
 				accept_connection();
 			else
 				read_message(i);
-		}		
+		}
 		else if(_pfds[i].revents & POLLOUT)
 		{
 //			std::cout << "estamos en POLLOUT en i = " << i << std::endl;

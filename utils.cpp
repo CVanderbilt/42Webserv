@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <iostream>
 
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {
@@ -66,11 +67,14 @@ bool checkUri(const std::string& path, const std::string& uri)
 
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
 {
-	for (int i = 0; i < locs.size(); i++)
-		if (checkUri(locs[i].path, uri))
-		{
-			return (&locs[i]);
-		}
+	size_t pos = uri.find_last_of('/');
+	if (pos == uri.npos)
+		return (nullptr);
+	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
+	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
+	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
+		if (it->path == uri_directory)
+			return (&(*it));
 	return (nullptr);
 }
 

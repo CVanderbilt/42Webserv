@@ -159,7 +159,12 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 		sd = readdir(d);
 		if (!sd)
 			break ;
-		ret += "<li><a href=\"" + url_location + sd->d_name + "\">" + sd->d_name + "</a></li>\n";
+		std::string name = sd->d_name;
+		if (sd->d_type == DT_DIR)
+			name += "/";
+		else if (sd->d_type != DT_REG)
+			continue ;
+		ret += "<li><a href=\"" + url_location + name + "\">" + name + "</a></li>\n";
 	}
 	ret += "</ul>";
 	ret += "</p>\n";
@@ -186,11 +191,13 @@ std::string	Client::BuildGet()
 		std::cout << "path: " << s->path << std::endl;
 		std::cout << "root: " << s->root << std::endl;
 	}
+	else
+		return "404 location not found"; //realmente pagina de error y mensaje de error
+		//a lo mejor podríamps hacer una funcion de send_error que le mandemos el número
+		//de error como parámetro y construya el mensaje con la página, o devuelva mensaje
+		//sin body en caso de no haber página.
 
 	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
-	std::string file_path = s->root;
-	if (file_path[file_path.length() - 1] != '/')
-		file_path += "/";
 	if (file_in_uri == "") //index
 	{
 		//search for an index, if found one write it on the response
@@ -200,26 +207,28 @@ std::string	Client::BuildGet()
 		{
 			try
 			{
-				return (ExtractFile(file_path + *it));
+				return (ExtractFile(s->root + *it));
 			}
 			catch(const std::exception& e)
 			{
-				std::cerr << file_path + *it << " not found" << std::endl;
+				std::cerr << s->root + *it << " not found" << std::endl;
 			}
-			if (s->autoindex)
-				return (GetAutoIndex(file_path, s->path));
 		}
+		if (s->autoindex)
+			return (GetAutoIndex(s->root, s->path));
+		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
+
 	}
 	else
 	{
-		file_path += file_in_uri;
 		try
 		{
-			return (ExtractFile(file_path));
+			return (ExtractFile(s->root + file_in_uri));
 		}
 		catch(const std::exception& e)
 		{
 			std::cout << "file not found, return error page if available" << std::endl;
+			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 		}
 		
 	}
