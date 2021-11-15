@@ -1,5 +1,8 @@
 #include "Client.hpp"
 
+#include <sys/types.h>
+#include <dirent.h>
+
 Client::Client() : 
 	_fd(-1),
 	_status(-1),
@@ -117,20 +120,59 @@ void	Client::BuildResponse()
 		BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
 		body = BuildDelete();
-	stream << BuildHeader();
+	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
 	_response_left = _response.length();
 }
 
-std::string	Client::BuildHeader()
+
+std::string	Client::BuildHeader(size_t size)
 {
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
 	stream << "Content-Type: text/html" << "\r\n";
+	if (size > 0)
+		stream << "Content-Length: " << size << "\r\n";
 	stream << "\r\n";
 	return (stream.str());
 }
+
+std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
+{
+	std::string ret = "<!DOCTYPE html>\n";
+	ret += "<html>\n";
+	ret += "<head>\n";
+	ret += "<title>Index of" + directory + "</title>\n";
+	ret += "</head>\n";
+	ret += "<body>\n";
+	ret += "<p>\n";
+
+	DIR *d;
+	dirent *sd;
+
+	ret += "<h1>Index of" + directory + "</h1>";
+	d = opendir(directory.c_str());
+	ret += "<ul>";
+	while (1)
+	{
+		sd = readdir(d);
+		if (!sd)
+			break ;
+		std::string name = sd->d_name;
+		if (sd->d_type == DT_DIR)
+			name += "/";
+		else if (sd->d_type != DT_REG)
+			continue ;
+		ret += "<li><a href=\"" + url_location + name + "\">" + name + "</a></li>\n";
+	}
+	ret += "</ul>";
+	ret += "</p>\n";
+	ret += "</body>\n";
+	ret += "</html>\n";
+	return (ret);
+}
+
 std::string	Client::BuildGet()
 {
 	std::string	ret;
@@ -149,18 +191,46 @@ std::string	Client::BuildGet()
 		std::cout << "path: " << s->path << std::endl;
 		std::cout << "root: " << s->root << std::endl;
 	}
+	else
+		return "404 location not found"; //realmente pagina de error y mensaje de error
+		//a lo mejor podríamps hacer una funcion de send_error que le mandemos el número
+		//de error como parámetro y construya el mensaje con la página, o devuelva mensaje
+		//sin body en caso de no haber página.
 
-	if (_is_CGI) // de momento nunca es cgi
-//		ExecuteCGI();
-;/*TODO: build function to execute CGI*/
-	if (_response_status != 204 && !_is_CGI)
+	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
+	if (file_in_uri == "") //index
 	{
+		//search for an index, if found one write it on the response
+		//if not found but autoindex on create autoindex
+		//else 404
+		for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+		{
+			try
+			{
+				return (ExtractFile(s->root + *it));
+			}
+			catch(const std::exception& e)
+			{
+				std::cerr << s->root + *it << " not found" << std::endl;
+			}
+		}
+		if (s->autoindex)
+			return (GetAutoIndex(s->root, s->path));
+		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 
-		if (_is_autoindex)	
-//			ret = BuildAutoindex();
-;/*TODO: build function to build an autoindex htmlweb*/
-		else
-			ret = ExtractFile(_req_file);
+	}
+	else
+	{
+		try
+		{
+			return (ExtractFile(s->root + file_in_uri));
+		}
+		catch(const std::exception& e)
+		{
+			std::cout << "file not found, return error page if available" << std::endl;
+			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
+		}
+		
 	}
 	return (ret);
 }

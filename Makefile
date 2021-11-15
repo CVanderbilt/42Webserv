@@ -1,6 +1,6 @@
 # --------------------Paths----------------------------#
 
-OBJS_PATH = /objs/
+OBJS_PATH = objs/
 
 #--------------------Files-----------------------------#
 
@@ -25,8 +25,6 @@ OBJS = ${SRCS:.cpp=.o}
 
 RM = rm -rf
 
-DEBUG_FLAG = -D DEBUG_MODE
-
 #----------------------Rules----------------------------#
 
 .cpp.o:
@@ -41,7 +39,7 @@ all:		$(NAME)
 re:			fclean all
 
 clean:
-			${RM} ${TMP_PATH}
+			${RM} ${OBJS_PATH}
 
 fclean:
 			${RM} ${NAME}

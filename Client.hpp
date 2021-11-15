@@ -57,6 +57,7 @@ public:
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
 	void		ExecuteCGI();
-	std::string	BuildHeader();
+	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
+	std::string	BuildHeader(size_t size = 0);
 	std::map<int, std::string>		StatusMessages();
 };
