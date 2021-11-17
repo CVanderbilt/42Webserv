@@ -84,7 +84,17 @@ void Http_req::parse_body_multiform(void)
 		else if (eol == 0)
 		{
 			start = eol + 2;
-		//	mult_form_data[_mfd_size - 1].body = 
+			eol = body.find("\r\n", start);
+			line =  body.substr(start, eol);
+			while (line.compare("--" + head["boundary"]) == 0)
+			{
+				if (line.compare("--" + head["boundary"] + "--") == 0)
+					status = PARSE_END;
+				mult_form_data[_mfd_size - 1].body += line;
+				start = eol + 2;
+				eol = body.find("\r\n", start);
+				line =  body.substr(start, eol);
+			}
 		}
 	}
 }
