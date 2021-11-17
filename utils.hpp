@@ -7,6 +7,7 @@
 # include <fstream>
 # include <sstream>
 # include "Config.hpp"
+# include <cstdlib>
 
 /*
 *	Will have to move to its own file.

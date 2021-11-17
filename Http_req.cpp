@@ -9,7 +9,11 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void): status(Http_req::PARSE_INIT), max_size(UINT64_MAX) {}
+Http_req::Http_req(void):
+	_mfd_size(0),
+	max_size(1000000),
+	status(Http_req::PARSE_INIT)
+{}
 
 std::string Http_req::status_to_str(parsing_status st)
 {
@@ -49,6 +53,40 @@ void Http_req::parse_body(void)
 		return ;
 	}
 	status = PARSE_END;
+}
+
+void Http_req::parse_body_multiform(void)
+{
+	size_t eol;
+	size_t start = 0;
+
+	while ((eol = body.find("\r\n", start)) != body.npos)
+	{
+		std::string line = body.substr(start, eol);
+		if (line.compare("--" + head["boundary"]) == 0)
+		{
+			Mult_Form_Data new_mfd;
+			mult_form_data.push_back(new_mfd);
+			_mfd_size++;
+			start = eol + 2;
+		}
+		else if ((eol = line.find(":")) != line.npos)
+		{
+			if (line.compare(0, eol, "Content-Disposition") == 0)
+			{
+				size_t pos = line.find(";");
+				mult_form_data[_mfd_size - 1].content_disposition = line.substr(eol + 1, pos);
+			}
+			else if (line.compare(0, eol, "Content-Type") == 0)
+				mult_form_data[_mfd_size - 1].content_type = line.substr(eol + 1, line.npos);
+			start = eol + 2;
+		}
+		else if (eol == 0)
+		{
+			start = eol + 2;
+		//	mult_form_data[_mfd_size - 1].body = 
+		}
+	}
 }
 
 void Http_req::parse_method(void)
@@ -117,8 +155,14 @@ void Http_req::parse_head(void)
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
+	if (key == "content-type" && line.compare(0, 19, "multipart/form-data"))
+	{
+		head[key] = " multipart/form-data";
+		eol = line.find("=");
+		line = line.substr(eol + 1, line.npos);
+		head["boundary"] = line;
+	}
 }
-
 
 Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 {
@@ -143,7 +187,11 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 				break ;
 		}
 	}
-	//getchar();
+	if (status == PARSE_END && body != "" && (head["content-type"] == " multipart/form-data"))
+	{
+		status = PARSE_BODY;
+		parse_body_multiform();
+	}
 	if (status == PARSE_END || status == PARSE_ERROR)
 		_aux_buff.clear();
 	return (status);

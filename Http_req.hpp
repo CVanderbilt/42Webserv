@@ -1,8 +1,10 @@
 #pragma once
 
 #include <map>
+#include <vector>
 #include <string>
 #include <iostream>
+#include <cstdlib>
 
 typedef enum http_parse_err
 {
@@ -11,6 +13,15 @@ typedef enum http_parse_err
 	ERR_HTTP_HEAD,
 	ERR_HTTP_BODY
 }	t_http_parse_err;
+
+struct Mult_Form_Data
+{
+	std::string		content_disposition;
+	std::string		content_type;
+	std::string		name;
+	std::string		filename;
+	std::string		body;
+};
 
 class Http_req
 {
@@ -26,11 +37,13 @@ class Http_req
 
 	private:
 		std::string _aux_buff;
-		int			_content_size;
+		int			_mfd_size;
+//		int			_content_size;
 
 		void parse_method(void);
 		void parse_head(void);
 		void parse_body(void);
+		void parse_body_multiform(void);
 
 	public:
 		size_t								max_size;
@@ -40,7 +53,8 @@ class Http_req
 		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;
-		int									content_length;
+		size_t								content_length;
+		std::vector<Mult_Form_Data>			mult_form_data;
 		Http_req(void);
 
 		parsing_status parse_chunk(std::string chunk);

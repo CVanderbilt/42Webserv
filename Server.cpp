@@ -2,29 +2,29 @@
 #include "utils.hpp"
 
 Server::Server() :
-	_addrlen(sizeof(_addr)),
 	_fd_size(2),
-	_pfds(new pollfd[_fd_size]),
-	_port(8080)
+	_port(8080),
+	_addrlen(sizeof(_addr)),
+	_pfds(new pollfd[_fd_size])
 {}
 
 Server::Server(int port) :
-	_addrlen(sizeof(_addr)),
 	_fd_size(2),
-	_pfds(new pollfd[_fd_size]),
-	_port(port)
+	_port(port),
+	_addrlen(sizeof(_addr)),
+	_pfds(new pollfd[_fd_size])
 {}
 
 Server::Server(server_config const& s) :
-	_addrlen(sizeof(_addr)),
 	_fd_size(2),
-	_pfds(new pollfd[_fd_size]),
-	_port(8080)
+	_port(8080),
+	_addrlen(sizeof(_addr)),
+	_pfds(new pollfd[_fd_size])
 {
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
-			_port = std::stoi(it->second);
+			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
 			_server_name = splitIntoVector(it->second, " ");
 		else
@@ -158,7 +158,7 @@ void	Server::server_listen()
 		close(_server_fd);
 		throw ServerException("In poll", "failed for some reason");
 	}
-	for (int i = 0; i < _fd_count; i++)
+	for (size_t i = 0; i < _fd_count; i++)
 	{
 		if (_pfds[i].revents & POLLIN)
 		{
@@ -173,19 +173,20 @@ void	Server::server_listen()
 //			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
 			int status;
 			if (_clients.count(_pfds[i].fd))
+			{
 				status = _clients[_pfds[i].fd].getStatus();
-			if (status > 0)
-				send_response(i);
-			else if (status == 0)
-				std::cout << "Parse error" << std::endl;
-			else
-				continue;
-			/*TODO: enviar al cliente página de error*/
+				if (status > 0)
+					send_response(i);
+				else if (status == 0)
+					std::cout << "Parse error" << std::endl;
+				else
+					continue;
+			}/*TODO: enviar al cliente página de error*/
 			close_fd_del_client(i);
 		}
 		if(_pfds[i].fd == -1)
 		{
-			del_from_pfds(_pfds[i].fd, i);
+			del_from_pfds(i);
 			i--;
 		}
 	}
@@ -209,7 +210,7 @@ void	Server::add_to_pfds(int new_fd)
 	_fd_count++;
 }
 
-void	Server::del_from_pfds(int fd, int i)
+void	Server::del_from_pfds(int i)
 {
 	_pfds[i] = _pfds[_fd_count];
 	_fd_count--;

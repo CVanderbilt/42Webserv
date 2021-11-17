@@ -4,8 +4,8 @@
 #include <dirent.h>
 
 Client::Client() : 
-	_status(-1),
 	_fd(-1),
+	_status(-1),
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
@@ -13,8 +13,8 @@ Client::Client() :
 {}
 
 Client::Client(int fd) : 
-	_status(-1),
 	_fd(fd),
+	_status(-1),
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
@@ -23,8 +23,8 @@ Client::Client(int fd) :
 
 Client::Client(Client const &copy) :
 
-	_status(copy._status),
 	_fd(copy._fd),
+	_status(copy._status),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
@@ -55,6 +55,7 @@ void	Client::getParseChunk(std::string chunk)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
+	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -94,12 +95,12 @@ int		Client::ResponseStatus()
 		else
 			return (_response_status = 400);
 	}
-	if (MethodAllowed(_request.method) == false)
+	if (MethodAllowed() == false)
 		return (_response_status = 501);
 	return (_response_status = 200);
 }
 
-bool	Client::MethodAllowed(std::string method)
+bool	Client::MethodAllowed()
 {
 	if (_request.method.compare("GET") == 0 ||
 		_request.method.compare("POST") == 0 ||
@@ -217,12 +218,12 @@ std::string	Client::BuildGet()
 		if (s->autoindex)
 			return (GetAutoIndex(s->root, s->path));
 		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
-
 	}
 	else
 	{
 		try
 		{
+			std::cout << "s->root + file_in_uri = " << s->root + file_in_uri << std::endl;
 			return (ExtractFile(s->root + file_in_uri));
 		}
 		catch(const std::exception& e)
@@ -230,29 +231,35 @@ std::string	Client::BuildGet()
 			std::cout << "file not found, return error page if available" << std::endl;
 			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 		}
-		
 	}
 	return (ret);
 }
 
 void	Client::BuildPost()
 {
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+
 	if (_is_CGI)
 //		ExecuteCGI();
 ;/*TODO: build function to execute CGI*/
-	else
+	else if (s->write_enabled)
 	{
-		std::ofstream file(_req_file);
+		std::ofstream file;
 
-		if (file.good())
+		_req_file = s->write_path;
+		if (FileExists(_req_file))
 		{
-			file << _request.body << std::endl;
-			file.close();
-		}
-		else
-		{
-			_response_status = 500;
-			std::cout << "server: internal error" << std::endl;
+			file.open(_req_file.c_str(), std::ios::app);
+			if (file.good())
+			{
+				file << _request.body << std::endl;
+				file.close();
+			}
+			else
+			{
+				_response_status = 500;
+				std::cout << "server: internal error" << std::endl;
+			}
 		}
 	}
 }
