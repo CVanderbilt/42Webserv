@@ -55,6 +55,7 @@ void	Client::getParseChunk(std::string chunk)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
+	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -222,6 +223,7 @@ std::string	Client::BuildGet()
 	{
 		try
 		{
+			std::cout << "s->root + file_in_uri = " << s->root + file_in_uri << std::endl;
 			return (ExtractFile(s->root + file_in_uri));
 		}
 		catch(const std::exception& e)

@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 		std::cout << "server config vector empty" << std::endl;
 		return (1);
 	}
-	std::cout << "----------------------------------------------------------------------------------------" << std::endl;
+/*	std::cout << "----------------------------------------------------------------------------------------" << std::endl;
 	for (std::vector<server_config>::iterator it = config.begin(); it != config.end(); it++)
 	{
 		c = *it;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 		}
 		std::cout << "----------------------------------------------------------------------------------------" << std::endl;
 	}
-	try
+*/	try
 	{
 		std::vector<Server*>servers;
 		for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
