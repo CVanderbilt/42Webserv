@@ -1,11 +1,22 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 
 int main()
 {
-	std::string str = "hola mundo";
-	
-	std::cout << "str.find(""a"") = " << str.find("a") << std::endl;
-	std::cout << "str.find(""a "") = " << str.find("a ") << std::endl;
-	std::cout << "str.substr(3) = " << str.substr(3) << std::endl;
+	std::ifstream	ifs;
+	std::string 	str;
+	std::string 	src;
+	int i = 0;
+
+	ifs.open("rest.http");
+	while (getline(ifs, str))
+	{
+		std::cout << "str " << i << " = " << str << std::endl;
+		i++;
+		src += str + "\n";
+	}	
+
+	std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
+	std::cout << "src = " << src << std::endl;
 }

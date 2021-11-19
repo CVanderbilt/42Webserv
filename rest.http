@@ -79,6 +79,11 @@ Content-Length: 554
 Content-Disposition: form-data; name="text"
 
 text default
+
+prueba
+
+
+otra linea
 -----------------------------9051914041544843365972754266
 Content-Disposition: form-data; name="file1"; filename="a.txt"
 Content-Type: text/plain
