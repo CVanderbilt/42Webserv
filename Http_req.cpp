@@ -9,11 +9,20 @@
 *	when ended it will return null.
 */
 
-Http_req::Http_req(void):
-	_mfd_size(0),
-	max_size(1000000),
-	status(Http_req::PARSE_INIT)
-{}
+Http_req::Http_req(size_t max_size_body)
+{
+	initialize(max_size_body);
+}
+
+void Http_req::initialize(size_t max_size_body)
+{
+	_mfd_size = 0;
+	max_size = max_size_body;
+	status = Http_req::PARSE_INIT;
+
+	this->head.clear();
+	this->body.clear();
+}
 
 std::string Http_req::status_to_str(parsing_status st)
 {
@@ -40,13 +49,19 @@ void Http_req::parse_body(void)
 		status = PARSE_ERROR;
 		return ;
 	}
-	if (body_len == content_length) 							//(1)body length correct -> end
+	if (body_len == content_length) 								//(1)body length correct -> end
 		status = PARSE_END;
-	else if (body_len > content_length) 						//(2)body length greater than expected -> trim -> end
+	else if (body_len > content_length) 							//(2)body length greater than expected -> trim -> end
+	{
+		_aux_buff += body.substr(content_length, _aux_buff.npos);	//removed chars from body added to buffer
 		body = body.substr(0, content_length);
-	else if (_aux_buff.length() + body_len >= content_length) 	//(3)body length + buff greater or equal
-		body += _aux_buff.substr(0, content_length - body_len);	//  than expected add until body length correct
-	else														//(4)body + buff < expected -> simple addition
+	}
+	else if (_aux_buff.length() + body_len >= content_length) 		//(3)body length + buff greater or equal
+	{																//  than expected add until body length correct
+		_aux_buff = _aux_buff.substr(content_length - body_len, _aux_buff.npos);
+		body += _aux_buff.substr(0, content_length - body_len);
+	}
+	else															//(4)body + buff < expected -> simple addition
 	{
 		body += _aux_buff;
 		_aux_buff.clear();

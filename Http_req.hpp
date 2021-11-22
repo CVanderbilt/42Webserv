@@ -55,10 +55,11 @@ class Http_req
 		std::string							body;
 		size_t								content_length;
 		std::vector<Mult_Form_Data>			mult_form_data;
-		Http_req(void);
+		Http_req(size_t max_size_body = 1000000);
 
 		parsing_status parse_chunk(std::string chunk);
 		static std::string status_to_str(parsing_status st);
+		void initialize(size_t max_size_body);
 };
 
 std::ostream&   operator<<(std::ostream& os, const Http_req& obj);
