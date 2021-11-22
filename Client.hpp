@@ -60,4 +60,6 @@ public:
 	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
 	std::string	BuildHeader(size_t size = 0);
 	std::map<int, std::string>		StatusMessages();
+	const Http_req&	GetRequest();
+	void reset();
 };
