@@ -6,13 +6,15 @@
 
 int main(int argc, char *argv[])
 {
-	
 	std::vector<server_config> config;
-	if (argc != 2)
+	std::string config_file = "default.conf";
+	if (argc > 2)
 		std::cerr << "Wrong number of arguments" << std::endl;
 	try
 	{
-		config = check_config(argv[1]);
+		if (argc == 2)
+			config_file = argv[1];
+		config = check_config(config_file);
 	}
 	catch(const std::exception& e)
 	{

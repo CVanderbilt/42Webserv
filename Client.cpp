@@ -55,7 +55,6 @@ void	Client::getParseChunk(std::string chunk)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
-//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -202,13 +201,16 @@ std::string	Client::BuildGet()
 		//sin body en caso de no haber página.
 
 	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
+	std::cout << "file in uri >" << file_in_uri << "<" << std::endl;
 	if (file_in_uri == "") //index
 	{
 		//search for an index, if found one write it on the response
 		//if not found but autoindex on create autoindex
 		//else 404
+		std::cout << "not file, just index" << std::endl;
 		for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
 		{
+			std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
 			try
 			{
 				return (ExtractFile(s->root + *it));
@@ -218,15 +220,21 @@ std::string	Client::BuildGet()
 				std::cerr << s->root + *it << " not found" << std::endl;
 			}
 		}
+		std::cout << "Not index found" << std::endl;
 		if (s->autoindex)
+		{
+			std::cout << "Sending autoindex" << std::endl;
 			return (GetAutoIndex(s->root, s->path));
+		}
+		std::cout << "Not autoindex, sending error page or something" << std::endl;
 		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 	}
 	else
 	{
+		std::cout << "a file it is" << std::endl;
+		std::cout << "trying file >" << s->root << file_in_uri << "<" << std::endl;
 		try
 		{
-			std::cout << "s->root + file_in_uri = " << s->root + file_in_uri << std::endl;
 			return (ExtractFile(s->root + file_in_uri));
 		}
 		catch(const std::exception& e)
@@ -235,6 +243,7 @@ std::string	Client::BuildGet()
 			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
 		}
 	}
+	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
 	return (ret);
 }
 
@@ -333,4 +342,14 @@ std::map<int, std::string>	Client::StatusMessages()
 void		Client::setServer(std::vector<server_location> *s)
 {
 	_s = s;
+}
+
+const Http_req&	Client::GetRequest()
+{
+	return (_request);
+}
+
+void Client::reset()
+{
+	_request.initialize(this->_max_body_size);
 }

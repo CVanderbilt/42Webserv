@@ -31,9 +31,10 @@ Server::Server(server_config const& s) :
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
 
-	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); it++)
+	int idx = -1;
+	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); ++it)
 	{
-		int idx = _server_location.size();
+		idx++;
 		_server_location.resize(_server_location.size() + 1);
 		_server_location[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
@@ -79,6 +80,17 @@ void	Server::server_start()
 	_addr.sin_port = htons(_port);
 	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
+	int optval = 1;
+	if ((setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) == -1)
+	{
+		close(_server_fd);
+		throw ServerException("In setsockopt", "failed for some reason with option SO_REUSEADDR");
+	}
+	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
+	{
+		close(_server_fd);
+		throw ServerException("In setsockopt", "failed for some reason with option SO_NOSIGPIPE");
+	}
 	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
 	{
 		close (_server_fd);
@@ -132,7 +144,7 @@ void	Server::read_message(int i)
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-		close_fd_del_client(i);
+		close_fd_del_client(i); //todo  msg
 		perror("recv");
 		std::cout << "server: recv error---------------------------------------------------------------------" << std::endl;
 	}
@@ -162,27 +174,54 @@ void	Server::server_listen()
 	{
 		if (_pfds[i].revents & POLLIN)
 		{
-//			std::cout << "estamos en POLLIN en i = " << i << std::endl;
+			std::cout << ">>>>>>>>>INCOMING CONNECTION<<<<<<<<<" << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
 				read_message(i);
+			std::cout << ">>>>>>>>>INCOMING CONNECTION PROCESSED<<<<<<<<<" << std::endl << std::endl;
 		}
 		else if(_pfds[i].revents & POLLOUT)
 		{
-//			std::cout << "estamos en POLLOUT en i = " << i << std::endl;
-			int status;
+			std::cout << "<<<<<<<<<READY TO ANSWER>>>>>>>>>" << std::endl;
+			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
 			if (_clients.count(_pfds[i].fd))
 			{
-				status = _clients[_pfds[i].fd].getStatus();
+				status = _clients[_pfds[i].fd].getStatus(); //>0 ready to send, 0 error, -1 in process
 				if (status > 0)
 					send_response(i);
 				else if (status == 0)
+				{
 					std::cout << "Parse error" << std::endl;
+					//aun no ha pasado, pero imagino que tendrá que devolver una página de error o algo
+					//a lo mejor si status = 0 también podemos entrar en el if de arriba, y mandar la respuesta
+					//que haya guardad que sería una de error previamente cargada, genérica o extraída
+				}
 				else
+				{
+					std::cout << "<<<<<<<<<NOT READY TO ANSWER>>>>>>>>>" << std::endl << std::endl;
 					continue;
-			}/*TODO: enviar al cliente página de error*/
-			close_fd_del_client(i);
+				}
+			}/*TODO: enviar al cliente página de error   ------------^ */
+			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
+			if (status == 0)
+				close_fd_del_client(i);
+				//send error message;     ------------^
+			else
+			{
+				std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
+				if (cnt != head_info.end() && cnt->second == "Close")
+				{
+					std::cout << "Closing beacuse was not keep alive" << std::endl;
+					close_fd_del_client(i); //todo error msg
+				}
+				else
+				{
+					_clients[_pfds[i].fd].reset();
+					std::cout << "Client reset (keeping alive)" << std::endl;
+				}
+			}
+			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
 		}
 		if(_pfds[i].fd == -1)
 		{
@@ -218,6 +257,7 @@ void	Server::del_from_pfds(int i)
 
 void	Server::close_fd_del_client(int i)
 {
+	std::cout << "closing client" << std::endl;
 	close(_pfds[i].fd);
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;
@@ -228,17 +268,21 @@ void	Server::send_response(int i)
 	size_t val_sent;
 
 	_clients[_pfds[i].fd].BuildResponse();
-//	std::cout << _clients[_pfds[i].fd].getResponse().c_str() << std::endl;
-	if ((val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0)) < 0)
+	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
+	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
+	std::cout << "sent succesfully" << std::endl;
+	if ((val_sent < 0))
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
+		//si se da este caso habría que cerrar la conexión y a otra cosa
 	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
 	{
+		std::cout << "server: partial response sent on socket" << std::endl;
 		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
 		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
 	}
 	else
 	{
-		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
+		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl << std::endl;
 		_clients[_pfds[i].fd].getResponse().clear();
 	}
 }

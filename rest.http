@@ -46,7 +46,7 @@ Cookie: phaseInterval=120000; previewCols=url%20status%20size%20timeline; stats=
 
 ###
 
-GET /favicon.ico HTTP/1.1
+GET /documents/ HTTP/1.1
 Host: localhost:8080
 Connection: keep-alive
 sec-ch-ua: "Google Chrome";v="95", "Chromium";v="95", ";Not A Brand";v="99"
