@@ -4,7 +4,9 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
+#include <cstdio>
 
 typedef enum http_parse_err
 {
@@ -62,4 +64,4 @@ class Http_req
 		void initialize(size_t max_size_body);
 };
 
-std::ostream&   operator<<(std::ostream& os, const Http_req& obj);
+std::ostream&   operator<<(std::ostream& os, Http_req& obj);
