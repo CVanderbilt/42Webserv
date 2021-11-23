@@ -171,7 +171,7 @@ void Http_req::parse_head(void)
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
-	if (key == "content-type" && line.compare(0, 19, " multipart/form-data"))
+	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 19, " multipart/form-data"))
 	{
 		head[key] = " multipart/form-data";
 		eol = line.find("=");
@@ -203,7 +203,7 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 				break ;
 		}
 	}
-	if (status == PARSE_END && body != "" && (head["content-type"] == " multipart/form-data"))
+	if (status == PARSE_END && body != "" && (head["Content-Type"] == " multipart/form-data" || head["content-type"] == " multipart/form-data"))
 	{
 		status = PARSE_BODY;
 		parse_body_multiform();
@@ -215,7 +215,7 @@ Http_req::parsing_status Http_req::parse_chunk(std::string chunk)
 
 std::ostream&   operator<<(std::ostream& os, Http_req& obj)
 {
-/*	os << "Method: " << obj.method << ", uri: " << obj.uri << ", protocol: " << obj.protocol << std::endl;
+	os << "Method: " << obj.method << ", uri: " << obj.uri << ", protocol: " << obj.protocol << std::endl;
 	os << "Head:" << std::endl;
 	std::map<std::string, std::string>::const_iterator it;
 	for (it = obj.head.begin();
@@ -224,7 +224,7 @@ std::ostream&   operator<<(std::ostream& os, Http_req& obj)
 		os << it->first << ":" << it->second << std::endl;
 	os << "Body:" << std::endl;
 	os << obj.body << std::endl;
-*/	if (obj.head["content-type"] == " multipart/form-data")
+	if (obj.head["Content-Type"] == " multipart/form-data" || obj.head["content-type"] == " multipart/form-data")
 	{
 		os << std::endl << "XXXXXXXXXXXXXXXXXXXXX     Multipart/form-data   XXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
 		os << "vector mfd size = " << obj.mult_form_data.size() << std::endl;

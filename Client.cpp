@@ -55,7 +55,7 @@ void	Client::getParseChunk(std::string chunk)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
-	std::cout << _request << std::endl;
+//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -182,6 +182,7 @@ std::string	Client::BuildGet()
 	//check if is asking for file(including cgi) or an index
 	//	is an index if uri equals path of location
 	const server_location *s = locationByUri(_request.uri, *this->_s);
+	std::cout << "en get : " << s << std::endl;
 	std::cout << "uri: >" << _request.uri << "<, server_location: " << s << std::endl;
 	if (s)
 	{
@@ -191,6 +192,8 @@ std::string	Client::BuildGet()
 		std::cout << "autoindex: " << s->autoindex << std::endl;
 		std::cout << "path: " << s->path << std::endl;
 		std::cout << "root: " << s->root << std::endl;
+		std::cout << "write_enabled: " << s->write_enabled << std::endl;
+		std::cout << "write_path: " << s->write_path << std::endl;
 	}
 	else
 		return "404 location not found"; //realmente pagina de error y mensaje de error
@@ -238,27 +241,52 @@ std::string	Client::BuildGet()
 void	Client::BuildPost()
 {
 	const server_location *s = locationByUri(_request.uri, *this->_s);
-
+	std::cout << "en post = " << std::endl;
+	std::cout << "autoindex: " << s->autoindex << std::endl;
+	std::cout << "path: " << s->path << std::endl;
+	std::cout << "root: " << s->root << std::endl;
+	std::cout << "write_enabled: " << s->write_enabled << std::endl;
+	std::cout << "write_path: " << s->write_path << std::endl;
 	if (_is_CGI)
 //		ExecuteCGI();
 ;/*TODO: build function to execute CGI*/
 	else if (s->write_enabled)
 	{
-		std::ofstream file;
-
-		_req_file = s->write_path;
-		if (FileExists(_req_file))
+		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
 		{
-			file.open(_req_file.c_str(), std::ios::app);
-			if (file.good())
+			if (_request.mult_form_data[i].filename != "")
 			{
-				file << _request.body << std::endl;
-				file.close();
+				std::ofstream file;
+				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				file.open(_req_file.c_str());
+				if (file.is_open() && file.good())
+				{
+					file << _request.mult_form_data[i].body << std::endl;
+					file.close();
+				}
+				else
+				{
+				_response_status = 500;
+				std::cout << "server: internal error" << std::endl;
+				}
 			}
 			else
 			{
+				std::ofstream file;
+				_req_file = s->root + "/index.html";
+				file.open(_req_file.c_str(), std::ios::app);
+				if (file.is_open() && file.good())
+				{
+					file << "<html>\n<body>\n<p>This is a new post</p>\n<p>"
+						<< _request.mult_form_data[i].body
+						<< "</p></body>\n</html>\n" << std::endl;
+					file.close();
+				}
+				else
+				{
 				_response_status = 500;
 				std::cout << "server: internal error" << std::endl;
+				}
 			}
 		}
 	}
@@ -267,6 +295,9 @@ void	Client::BuildPost()
 std::string	Client::BuildDelete()
 {
 	std::string	ret;
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+
+	_req_file = s->write_path + _request.uri;
 
 	unlink(_req_file.c_str());
 	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
