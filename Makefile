@@ -38,6 +38,9 @@ $(NAME):	${OBJS}
 
 all:		${NAME}
 
+debug:		fclean ${OBJS}
+			${CLANG} ${FLAGS} -g3 ${OBJS} -o ${NAME}
+
 clean:
 			${RM} ${OBJS_PATH}
 

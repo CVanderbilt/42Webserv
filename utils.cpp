@@ -84,5 +84,7 @@ server_location::server_location(const server_location& other):
 	path(other.path),
 	autoindex(other.autoindex),
 	cgi(other.cgi),
-	index(other.index)
+	index(other.index),
+	write_enabled(other.write_enabled),
+	write_path(other.write_path)
 {}

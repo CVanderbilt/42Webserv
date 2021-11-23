@@ -4,7 +4,9 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
+#include <cstdio>
 
 typedef enum http_parse_err
 {
@@ -61,4 +63,4 @@ class Http_req
 		static std::string status_to_str(parsing_status st);
 };
 
-std::ostream&   operator<<(std::ostream& os, const Http_req& obj);
+std::ostream&   operator<<(std::ostream& os, Http_req& obj);
