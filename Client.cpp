@@ -51,7 +51,7 @@ void	Client::getParseChunk(char *chunck, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
-	std::cout << "parsing new chunk of size: " << bytes << std::endl;
+	std::cout << "parsing new chunck of size: " << bytes << std::endl;
 	if ((temp = _request.parse_chunk(chunck, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)

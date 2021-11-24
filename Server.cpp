@@ -139,7 +139,7 @@ void	Server::accept_connection()
 
 void	Server::read_message(int i)
 {
-	char	*buffer = new char[BUFFER_SIZE];
+	char	*buffer = new char[BUFFER_SIZE + 1];
 	size_t 	numbytes;
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
@@ -155,7 +155,7 @@ void	Server::read_message(int i)
 	}
 	else
 	{
-		//buffer[numbytes] = '\0'; //falso
+		buffer[numbytes] = '\0'; //falso ?
 		if (_clients.count(_pfds[i].fd))
 			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
@@ -210,7 +210,7 @@ void	Server::server_listen()
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
-				if (cnt != head_info.end() && cnt->second == " Close") //aqui todavía no está implementado lo de quitar los espacios
+				if (1 || (cnt != head_info.end() && cnt->second == " Close")) //aqui todavía no está implementado lo de quitar los espacios
 				{
 					std::cout << "Closing beacuse was not keep alive" << std::endl;
 					close_fd_del_client(i); //todo error msg
