@@ -56,6 +56,7 @@ void	Client::getParseChunk(char *chunck, size_t bytes)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
+	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()

@@ -87,44 +87,49 @@ void Http_req::parse_body_multiform(void)
 	ss << body;
 	while (std::getline(ss, line))
 	{
-		if (line.compare("--" + head["boundary"] + "\r") == 0)
+		if (!in_body)
 		{
-			Mult_Form_Data new_mfd;
-			mult_form_data.push_back(new_mfd);
-			_mfd_size++;
-			in_body = false;
-		}
-		else if ((pos_1 = line.find(':')) != line.npos)
-		{
-			if (line.compare(0, pos_1, "Content-Disposition") == 0)
+			if (line.compare("--" + head["boundary"] + "\r") == 0)
 			{
-				pos_2 = line.find(';');
-				mult_form_data[_mfd_size - 1].content_disposition = line.substr(pos_1 + 1, pos_2 - pos_1 - 1);
-				if((pos_1 = line.find('=')) != line.npos)
-				{
-					pos_2 = line.find(';', pos_1);
-					if (pos_2 != line.npos)
-						mult_form_data[_mfd_size - 1].name = line.substr(pos_1 + 2, pos_2 - 1 - pos_1 - 2);
-					else
-						mult_form_data[_mfd_size - 1].name = line.substr(pos_1 + 2, line.size() - pos_1 - 4);
-				}
-				if((pos_1 = line.find('=', pos_1 + 1)) != line.npos)
-					mult_form_data[_mfd_size - 1].filename = line.substr(pos_1 + 2, line.size() - pos_1 - 4);
+				Mult_Form_Data new_mfd;
+				mult_form_data.push_back(new_mfd);
+				_mfd_size++;
+				in_body = false;
 			}
-			else if (line.compare(0, pos_1, "Content-Type") == 0)
-				mult_form_data[_mfd_size - 1].content_type = line.substr(pos_1 + 1, line.npos - pos_1 - 1);
+			else if ((pos_1 = line.find(':')) != line.npos)
+			{
+				if (line.compare(0, pos_1, "Content-Disposition") == 0)
+				{
+					pos_2 = line.find(';');
+					mult_form_data[_mfd_size - 1].content_disposition = line.substr(pos_1 + 1, pos_2 - pos_1 - 1);
+					if((pos_1 = line.find('=')) != line.npos)
+					{
+						pos_2 = line.find(';', pos_1);
+						if (pos_2 != line.npos)
+							mult_form_data[_mfd_size - 1].name = line.substr(pos_1 + 2, pos_2 - 1 - pos_1 - 2);
+						else
+							mult_form_data[_mfd_size - 1].name = line.substr(pos_1 + 2, line.size() - pos_1 - 4);
+					}
+					if((pos_1 = line.find('=', pos_1 + 1)) != line.npos)
+						mult_form_data[_mfd_size - 1].filename = line.substr(pos_1 + 2, line.size() - pos_1 - 4);
+				}
+				else if (line.compare(0, pos_1, "Content-Type") == 0)
+					mult_form_data[_mfd_size - 1].content_type = line.substr(pos_1 + 1, line.npos - pos_1 - 1);
+			}
+			else if (line == "\r")
+				in_body = true;
 		}
-		else if (line.compare(0, head["boundary"].size() + 4, "--" + head["boundary"] + "--") == 0)
+		else
 		{
-			in_body = false;
-			status = PARSE_END;
-			break;
-		}
-		else if (in_body)
+			if (line.compare(0, head["boundary"].size() + 4, "--" + head["boundary"] + "--") == 0)
+			{
+				in_body = false;
+				status = PARSE_END;
+				break;
+			}
 			mult_form_data[_mfd_size - 1].body.append(line, 0, line.length()).append("\n", 0, 1);
-//			mult_form_data[_mfd_size - 1].body += line + "\n";
-		else if (line == "\r" && !in_body)
-			in_body = true;
+	//		mult_form_data[_mfd_size - 1].body += line + "\n";
+		}
 	}
 }
 
@@ -238,6 +243,8 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 	{
 		status = PARSE_BODY;
 		parse_body_multiform();
+		std::cout << "body size = " << body.length() << std::endl;
+		std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
 	}
 	return (status);
 }
@@ -253,7 +260,7 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 		os << it->first << ":" << it->second << std::endl;
 	os << "Body:" << std::endl;
 	os << obj.body << std::endl;
-	/*if (obj.head["Content-Type"] == " multipart/form-data" || obj.head["content-type"] == " multipart/form-data")
+	if (obj.head.find("Content-Type")->second == " multipart/form-data" || obj.head.find("Content-Type")->second == " multipart/form-data")
 	{
 		os << std::endl << "XXXXXXXXXXXXXXXXXXXXX     Multipart/form-data   XXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
 		os << "vector mfd size = " << obj.mult_form_data.size() << std::endl;
@@ -265,6 +272,6 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 			os << "filename:" << obj.mult_form_data[i].filename << std::endl;
 			os << "body:" << obj.mult_form_data[i].body << std::endl << std::endl;
 		}
-	}*/
+	}
 	return (os);
 }
