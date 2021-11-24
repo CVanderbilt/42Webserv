@@ -47,11 +47,12 @@ int		Client::getStatus()
 	return (_status);
 }
 
-void	Client::getParseChunk(std::string chunk)
+void	Client::getParseChunk(char *chunck, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
-	if ((temp = _request.parse_chunk(chunk)) == Http_req::PARSE_ERROR)
+	std::cout << "parsing new chunk of size: " << bytes << std::endl;
+	if ((temp = _request.parse_chunk(chunck, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
@@ -256,10 +257,7 @@ void	Client::BuildPost()
 	std::cout << "root: " << s->root << std::endl;
 	std::cout << "write_enabled: " << s->write_enabled << std::endl;
 	std::cout << "write_path: " << s->write_path << std::endl;
-	if (_is_CGI)
-//		ExecuteCGI();
-;/*TODO: build function to execute CGI*/
-	else if (s->write_enabled)
+	if (s->write_enabled)
 	{
 		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
 		{
@@ -270,7 +268,9 @@ void	Client::BuildPost()
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
-					file << _request.mult_form_data[i].body << std::endl;
+					std::cout << "writting " << _request.mult_form_data[i].body.length() << " bytes" << std::endl;
+					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+					//file << _request.mult_form_data[i].body.c_str() << std::endl;
 					file.close();
 				}
 				else
@@ -299,6 +299,7 @@ void	Client::BuildPost()
 			}
 		}
 	}
+	std::cout << "========================================" << std::endl;
 }
 
 std::string	Client::BuildDelete()

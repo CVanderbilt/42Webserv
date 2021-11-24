@@ -43,7 +43,7 @@ public:
 	int			getFd() const;
 	void		setFd(int const &fd);
 	int 		getStatus();
-	void		getParseChunk(std::string chunk);
+	void		getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
 	std::string	getResponse();
 	size_t		getResponseSent();
