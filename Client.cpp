@@ -354,4 +354,6 @@ const Http_req&	Client::GetRequest()
 void Client::reset()
 {
 	_request.initialize(this->_max_body_size);
+	_response_sent = 0;
+	_response_left = 0;
 }
