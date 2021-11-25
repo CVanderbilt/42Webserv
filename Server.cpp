@@ -147,7 +147,7 @@ void	Server::accept_connection()
 void	Server::read_message(int i)
 {
 	char	*buffer = new char[BUFFER_SIZE + 1];
-	size_t 	numbytes;
+	long int 	numbytes;
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
