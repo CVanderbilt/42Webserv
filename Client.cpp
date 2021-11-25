@@ -53,12 +53,12 @@ int		Client::getStatus()
 	return (_status);
 }
 
-void	Client::getParseChunk(char *chunck, size_t bytes)
+void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
 	std::cout << "parsing new chunck of size: " << bytes << std::endl;
-	if ((temp = _request.parse_chunk(chunck, bytes)) == Http_req::PARSE_ERROR)
+	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
@@ -128,6 +128,28 @@ void	Client::BuildResponse()
 		BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
 		body = BuildDelete();
+	if (_response_status >= 400)
+	{
+		std::cout << "attempt to respond with error page" << std::endl;
+		try
+		{
+			if (_error_pages->count(_response_status) > 0)
+			{
+				body = ExtractFile(_error_pages->find(_response_status)->second);
+			}
+			else
+			{
+				std::cout << "error: " << _response_status << ", doesnt have html page" << std::endl;
+				body = "";
+			}
+		}
+		catch(const std::exception& e)
+		{
+			std::cout << "file not found" << std::endl;
+			body = "";
+			std::cerr << e.what() << '\n';
+		}
+	}
 	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
