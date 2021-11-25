@@ -27,6 +27,13 @@ Server::Server(server_config const& s) :
 			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
 			_server_name = splitIntoVector(it->second, " ");
+		else if (it->first == "error")
+		{
+			std::vector<std::string> aux = splitIntoVector(it->second, " ");
+			if (aux.size() != 2)
+				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
+			_error_pages[std::atoi(aux[0].c_str())] = aux[1]; //también revisar que aux[0] mida 3 y sean tres digitos
+		}
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
@@ -123,7 +130,7 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
-		new_client.setServer(&_server_location);
+		new_client.setServer(&_server_location, &_error_pages);
 
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
