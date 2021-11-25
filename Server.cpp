@@ -194,33 +194,25 @@ void	Server::server_listen()
 			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
 			if (_clients.count(_pfds[i].fd))
 			{
-				status = _clients[_pfds[i].fd].getStatus(); //>0 ready to send, 0 error, -1 in process
-				if (status > 0)
+				status = _clients[_pfds[i].fd].getStatus();
+				if (status >= 0)
 					send_response(i);
-				else if (status == 0)
-				{
-					std::cout << "Parse error" << std::endl;
-					//aun no ha pasado, pero imagino que tendrá que devolver una página de error o algo
-					//a lo mejor si status = 0 también podemos entrar en el if de arriba, y mandar la respuesta
-					//que haya guardad que sería una de error previamente cargada, genérica o extraída
-				}
 				else
 				{
 					std::cout << "<<<<<<<<<NOT READY TO ANSWER>>>>>>>>>" << std::endl << std::endl;
 					continue;
 				}
-			}/*TODO: enviar al cliente página de error   ------------^ */
+			}
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
 				close_fd_del_client(i);
-				//send error message;     ------------^
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
 				if (1 || (cnt != head_info.end() && cnt->second == " Close")) //aqui todavía no está implementado lo de quitar los espacios
 				{
 					std::cout << "Closing beacuse was not keep alive" << std::endl;
-					close_fd_del_client(i); //todo error msg
+					close_fd_del_client(i);
 				}
 				else
 				{
@@ -240,11 +232,9 @@ void	Server::server_listen()
 
 void	Server::add_to_pfds(int new_fd)
 {
-//	std::cout << "_fd_size = " << _fd_size << std::endl;
-	if (_fd_count == _fd_size - 1) //con esto evitamos un segfault que se producía al borrar el último elemento del array, cosa que sucede casi siempre
+	if (_fd_count == _fd_size - 1)
 	{
 		_fd_size = 2 * _fd_size > MAX_CONNEC? MAX_CONNEC : _fd_size * 2;
-//		std::cout << "_fd_size = " << _fd_size << std::endl;
 		pollfd	*temp = new pollfd[_fd_size];
 		for (size_t i = 0; i < _fd_count; i++)
 			temp[i] = _pfds[i];

@@ -122,7 +122,9 @@ void	Client::BuildResponse()
 	std::stringstream	stream;
 	std::string			body;
 	ResponseStatus();
-	if (_request.method.compare("GET") == 0)
+	if (_request.status == Http_req::PARSE_ERROR)
+		_response_status = 400;
+	else if (_request.method.compare("GET") == 0)
 		body = BuildGet();
 	else if (_request.method.compare("POST") == 0)
 		BuildPost();
