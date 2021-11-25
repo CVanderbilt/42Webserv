@@ -30,6 +30,7 @@ private:
 	bool						_is_CGI;
 	bool						_is_autoindex;
 	std::string					_req_file;
+	const std::vector<server_location>	*_s;
 	
 public:
 
@@ -38,10 +39,11 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
+	void		setServer(std::vector<server_location> *s);
 	int			getFd() const;
 	void		setFd(int const &fd);
 	int 		getStatus();
-	void		getParseChunk(std::string chunk);
+	void		getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
 	std::string	getResponse();
 	size_t		getResponseSent();
@@ -49,12 +51,15 @@ public:
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
 	int			ResponseStatus();
-	bool		MethodAllowed(std::string method);
+	bool		MethodAllowed();
 	std::string	BuildGet();
 	void		BuildPost();
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
 	void		ExecuteCGI();
-	std::string	BuildHeader();
+	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
+	std::string	BuildHeader(size_t size = 0);
 	std::map<int, std::string>		StatusMessages();
+	const Http_req&	GetRequest();
+	void reset();
 };

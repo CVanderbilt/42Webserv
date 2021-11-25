@@ -4,14 +4,17 @@
 #include "Config.hpp"
 #include "Server.hpp"
 
-int main()
+int main(int argc, char *argv[])
 {
 	std::vector<server_config> config;
-
+	std::string config_file = "default.conf";
+	if (argc > 2)
+		std::cerr << "Wrong number of arguments" << std::endl;
 	try
 	{
-		/* code */
-		config = check_config("./default.conf");
+		if (argc == 2)
+			config_file = argv[1];
+		config = check_config(config_file);
 	}
 	catch(const std::exception& e)
 	{
@@ -23,7 +26,7 @@ int main()
 		std::cout << "server config vector empty" << std::endl;
 		return (1);
 	}
-	std::cout << "----------------------------------------------------------------------------------------" << std::endl;
+/*	std::cout << "----------------------------------------------------------------------------------------" << std::endl;
 	for (std::vector<server_config>::iterator it = config.begin(); it != config.end(); it++)
 	{
 		c = *it;
@@ -44,21 +47,28 @@ int main()
 		}
 		std::cout << "----------------------------------------------------------------------------------------" << std::endl;
 	}
-
-	std::vector<Server*>servers;
-	for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
+*/	try
 	{
-		servers.push_back(new Server(*it));
-		servers[servers.size() - 1]->server_start();
-	}
+		std::vector<Server*>servers;
+		for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
+		{
+			servers.push_back(new Server(*it));
+			servers[servers.size() - 1]->server_start();
+		}
 
-	size_t idx = 0;
-	while (1)
-	{
-//		std::cout << "server: " << idx << std::endl;
-		servers[idx]->server_listen();
-		idx += 1;
-		idx %= servers.size();
-//		std::cout << "index++" << std::endl;
+		size_t idx = 0;
+		while (1)
+		{
+	//		std::cout << "server: " << idx << std::endl;
+			servers[idx]->server_listen();
+			idx += 1;
+			idx %= servers.size();
+	//		std::cout << "index++" << std::endl;
+		}
 	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 }

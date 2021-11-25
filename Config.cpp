@@ -36,7 +36,7 @@ std::string TrimLine(std::string line)
 			break ;
 		}
 	size_t end = line.size();
-	for (int i = end - 1; i >= 0; i--)
+	for (size_t i = end - 1; i >= 0; i--)
 		if (i == line.size() || (line[i] != ' ' && line[i] != 9))
 		{
 			end = i + 1;
@@ -60,7 +60,6 @@ std::string TrimLine(std::string line)
 void location_config::parse_config(std::ifstream& file, std::string& ln)
 {
 	std::string str;
-	size_t e;
 	size_t p = ln.find(' ');
 
 	if (p == ln.npos)
@@ -124,10 +123,8 @@ void server_config::parse_config(std::ifstream& file)
 */
 std::vector<server_config> check_config(std::string config_file)
 {
-	std::ifstream file(config_file);
+	std::ifstream file(config_file.c_str());
 	std::string str;
-	size_t idx = 0;
-
 	std::vector<server_config> ret;
 
 	if (!file.is_open())
