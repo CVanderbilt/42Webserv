@@ -78,7 +78,7 @@ Content-Length: 554
 -----------------------------9051914041544843365972754266
 Content-Disposition: form-data; name="text"
 
-¡Esto es una prueba de un post!
+Se ha hecho un post.
 
 -----------------------------9051914041544843365972754266
 Content-Disposition: form-data; name="file1"; filename="a.txt"
@@ -96,5 +96,5 @@ Content-Type: text/html
 
 ###
 
-DELETE /a.txt HTTP/1.1
+DELETE /42_background.jpg HTTP/1.1
 Host: localhost:8081

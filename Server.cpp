@@ -205,20 +205,23 @@ void	Server::server_listen()
 			}/*TODO: enviar al cliente página de error   ------------^ */
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
+			{
+				std::cout << "Cerrando porque starus = 0" << std::endl;
 				close_fd_del_client(i);
 				//send error message;     ------------^
+			}
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
 				if (1 || (cnt != head_info.end() && cnt->second == " Close")) //aqui todavía no está implementado lo de quitar los espacios
 				{
-					std::cout << "Closing beacuse was not keep alive" << std::endl;
+					std::cout << "Closing " << _pfds[i].fd << "beacuse was not keep alive" << std::endl;
 					close_fd_del_client(i); //todo error msg
 				}
 				else
 				{
 					_clients[_pfds[i].fd].reset();
-					std::cout << "Client reset (keeping alive)" << std::endl;
+					std::cout << "Client reset " << _pfds[i].fd << "(keeping alive)" << std::endl;
 				}
 			}
 			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
@@ -257,7 +260,7 @@ void	Server::del_from_pfds(int i)
 
 void	Server::close_fd_del_client(int i)
 {
-	std::cout << "closing client" << std::endl;
+	std::cout << "closing client" << _pfds[i].fd << std::endl;
 	close(_pfds[i].fd);
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;
