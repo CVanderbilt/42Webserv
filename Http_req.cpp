@@ -262,7 +262,7 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 		os << it->first << ":" << it->second << std::endl;
 	os << "Body:" << std::endl;
 	os << obj.body << std::endl;
-	if (obj.head.find("content-type")->second == "multipart/form-data")
+/*	if (obj.head.find("content-type")->second == "multipart/form-data")
 	{
 		os << std::endl << "XXXXXXXXXXXXXXXXXXXXX     Multipart/form-data   XXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
 		os << "vector mfd size = " << obj.mult_form_data.size() << std::endl;
@@ -275,5 +275,5 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 			os << "body:" << obj.mult_form_data[i].body << std::endl << std::endl;
 		}
 	}
-	return (os);
+*/	return (os);
 }
