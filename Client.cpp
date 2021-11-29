@@ -252,13 +252,7 @@ std::string	Client::BuildGet()
 void	Client::BuildPost()
 {
 	const server_location *s = locationByUri(_request.uri, *this->_s);
-	std::cout << "en post = " << std::endl;
-	std::cout << "autoindex: " << s->autoindex << std::endl;
-	std::cout << "path: " << s->path << std::endl;
-	std::cout << "root: " << s->root << std::endl;
-	std::cout << "write_enabled: " << s->write_enabled << std::endl;
-	std::cout << "write_path: " << s->write_path << std::endl;
-	if (s->write_enabled)
+	if (s && s->write_enabled)
 	{
 		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
 		{
