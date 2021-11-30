@@ -11,7 +11,8 @@
 #include <fcntl.h>
 #include <cstring>
 #include <vector>
-#include <sstream> 
+#include <sstream>
+#include <cerrno>
 #include "Http_req.hpp"
 #include "utils.hpp"
 
@@ -63,5 +64,7 @@ public:
 	std::string	BuildHeader(size_t size = 0);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
-	void reset();
+	void 		reset();
+	bool		isCGI();
+
 };

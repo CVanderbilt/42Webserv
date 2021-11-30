@@ -21,7 +21,6 @@
 #define PORT 8080
 #define BUFFER_SIZE 4096
 #define MAX_CONNEC 20
-
 class Server
 {
 private:

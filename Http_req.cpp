@@ -14,6 +14,19 @@ Http_req::Http_req(size_t max_size_body)
 	initialize(max_size_body);
 }
 
+Http_req::Http_req(Http_req const &copy):
+	max_size(copy.max_size),
+	status(copy.status),
+	method(copy.method),
+	uri(copy.uri),
+	file_uri(copy.file_uri),
+	protocol(copy.protocol),
+	head(copy.head),
+	body(copy.body),
+	content_length(copy.content_length),
+	mult_form_data(copy.mult_form_data)
+{}
+
 void Http_req::initialize(size_t max_size_body)
 {
 	_mfd_size = 0;

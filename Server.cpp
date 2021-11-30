@@ -93,11 +93,13 @@ void	Server::server_start()
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_REUSEADDR");
 	}
+#ifndef __linux__
 	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
 	{
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_NOSIGPIPE");
 	}
+#endif
 	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
 	{
 		close (_server_fd);

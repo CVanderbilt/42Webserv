@@ -357,3 +357,24 @@ void Client::reset()
 	_response_sent = 0;
 	_response_left = 0;
 }
+
+
+bool Client::isCGI()
+{
+	std::string	str;
+	size_t		i;
+
+	if ((i = _request.uri.find("?")) != _request.uri.npos)
+		str = _request.uri.substr(0, i);
+	else
+		str = _request.uri;
+	if ((i = str.find_last_of(".")) != str.npos)
+		str = str.substr(i, str.length() - i);
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+	if(!s)
+		return false;
+	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
+		if (str == *it)
+			return true;
+	return false;
+}
