@@ -31,6 +31,7 @@ private:
 	bool						_is_autoindex;
 	std::string					_req_file;
 	const std::vector<server_location>	*_s;
+	std::map<int, std::string>	*_error_pages;
 	
 public:
 
@@ -39,6 +40,7 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
+	void		setServer(std::vector<server_location> *s, std::map<int, std::string> *epages);
 	void		setServer(std::vector<server_location> *s);
 	int			getFd() const;
 	void		setFd(int const &fd);

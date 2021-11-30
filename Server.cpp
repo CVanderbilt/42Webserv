@@ -27,6 +27,13 @@ Server::Server(server_config const& s) :
 			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
 			_server_name = splitIntoVector(it->second, " ");
+		else if (it->first == "error")
+		{
+			std::vector<std::string> aux = splitIntoVector(it->second, " ");
+			if (aux.size() != 2)
+				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
+			_error_pages[std::atoi(aux[0].c_str())] = aux[1]; //también revisar que aux[0] mida 3 y sean tres digitos
+		}
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
@@ -86,12 +93,12 @@ void	Server::server_start()
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_REUSEADDR");
 	}
-/*	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
+	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
 	{
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_NOSIGPIPE");
 	}
-*/	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
+	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
 	{
 		close (_server_fd);
 		throw ServerException("In bind", "failed for some reason");
@@ -102,7 +109,7 @@ void	Server::server_start()
 		throw ServerException("In listen", "failed for some reason");
 	}
 	_pfds[0].fd = _server_fd;
-	_pfds[0].events = POLLIN | POLLOUT;
+	_pfds[0].events = POLLIN;
 	_fd_count = 1;
 }
 
@@ -123,7 +130,7 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
-		new_client.setServer(&_server_location);
+		new_client.setServer(&_server_location, &_error_pages);
 
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
@@ -140,7 +147,7 @@ void	Server::accept_connection()
 void	Server::read_message(int i)
 {
 	char	*buffer = new char[BUFFER_SIZE + 1];
-	size_t 	numbytes;
+	long int 	numbytes;
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
@@ -150,8 +157,8 @@ void	Server::read_message(int i)
 	}
 	else if (numbytes == 0)
 	{
+		std::cout << "server: client " << _pfds[i].fd << " closed connection" << std::endl;
 		close_fd_del_client(i);
-		std::cout << "server: client closed connection" << std::endl;
 	}
 	else
 	{
@@ -187,38 +194,30 @@ void	Server::server_listen()
 			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
 			if (_clients.count(_pfds[i].fd))
 			{
-				status = _clients[_pfds[i].fd].getStatus(); //>0 ready to send, 0 error, -1 in process
-				if (status > 0)
+				status = _clients[_pfds[i].fd].getStatus();
+				if (status >= 0)
 					send_response(i);
-				else if (status == 0)
-				{
-					std::cout << "Parse error" << std::endl;
-					//aun no ha pasado, pero imagino que tendrá que devolver una página de error o algo
-					//a lo mejor si status = 0 también podemos entrar en el if de arriba, y mandar la respuesta
-					//que haya guardad que sería una de error previamente cargada, genérica o extraída
-				}
 				else
 				{
 					std::cout << "<<<<<<<<<NOT READY TO ANSWER>>>>>>>>>" << std::endl << std::endl;
 					continue;
 				}
-			}/*TODO: enviar al cliente página de error   ------------^ */
+			}
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
 				close_fd_del_client(i);
-				//send error message;     ------------^
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
-				if (1 || (cnt != head_info.end() && cnt->second == " Close")) //aqui todavía no está implementado lo de quitar los espacios
+				if (/*1 || */(cnt != head_info.end() && cnt->second == "close")) //aqui todavía no está implementado lo de quitar los espacios
 				{
-					std::cout << "Closing beacuse was not keep alive" << std::endl;
+					std::cout << "Closing " << _pfds[i].fd << " beacuse was not keep alive" << std::endl;
 					close_fd_del_client(i); //todo error msg
 				}
 				else
 				{
 					_clients[_pfds[i].fd].reset();
-					std::cout << "Client reset (keeping alive)" << std::endl;
+					std::cout << "Client " << _pfds[i].fd << " reset (keeping alive)" << std::endl;
 				}
 			}
 			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
@@ -233,11 +232,9 @@ void	Server::server_listen()
 
 void	Server::add_to_pfds(int new_fd)
 {
-//	std::cout << "_fd_size = " << _fd_size << std::endl;
-	if (_fd_count == _fd_size - 1) //con esto evitamos un segfault que se producía al borrar el último elemento del array, cosa que sucede casi siempre
+	if (_fd_count == _fd_size - 1)
 	{
 		_fd_size = 2 * _fd_size > MAX_CONNEC? MAX_CONNEC : _fd_size * 2;
-//		std::cout << "_fd_size = " << _fd_size << std::endl;
 		pollfd	*temp = new pollfd[_fd_size];
 		for (size_t i = 0; i < _fd_count; i++)
 			temp[i] = _pfds[i];
@@ -257,7 +254,7 @@ void	Server::del_from_pfds(int i)
 
 void	Server::close_fd_del_client(int i)
 {
-	std::cout << "closing client" << std::endl;
+	std::cout << "closing client" << _pfds[i].fd << std::endl;
 	close(_pfds[i].fd);
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;

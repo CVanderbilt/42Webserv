@@ -10,7 +10,9 @@ Client::Client() :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages())
-{}
+{
+	_error_pages = NULL;
+}
 
 Client::Client(int fd) : 
 	_fd(fd),
@@ -19,7 +21,9 @@ Client::Client(int fd) :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages())
-{}
+{
+	_error_pages = NULL;
+}
 
 Client::Client(Client const &copy) :
 
@@ -29,7 +33,9 @@ Client::Client(Client const &copy) :
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
 	_stat_msg(copy._stat_msg)
-{} 
+{
+	_error_pages = NULL;
+} 
 
 int		Client::getFd() const
 {
@@ -47,12 +53,12 @@ int		Client::getStatus()
 	return (_status);
 }
 
-void	Client::getParseChunk(char *chunck, size_t bytes)
+void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
 	std::cout << "parsing new chunck of size: " << bytes << std::endl;
-	if ((temp = _request.parse_chunk(chunck, bytes)) == Http_req::PARSE_ERROR)
+	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 		_status = 1;
@@ -116,12 +122,36 @@ void	Client::BuildResponse()
 	std::stringstream	stream;
 	std::string			body;
 	ResponseStatus();
-	if (_request.method.compare("GET") == 0)
+	if (_request.status == Http_req::PARSE_ERROR)
+		_response_status = 400;
+	else if (_request.method.compare("GET") == 0)
 		body = BuildGet();
 	else if (_request.method.compare("POST") == 0)
 		BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
 		body = BuildDelete();
+	if (_response_status >= 400)
+	{
+		std::cout << "attempt to respond with error page" << std::endl;
+		try
+		{
+			if (_error_pages->count(_response_status) > 0)
+			{
+				body = ExtractFile(_error_pages->find(_response_status)->second);
+			}
+			else
+			{
+				std::cout << "error: " << _response_status << ", doesnt have html page" << std::endl;
+				body = "";
+			}
+		}
+		catch(const std::exception& e)
+		{
+			std::cout << "file not found" << std::endl;
+			body = "";
+			std::cerr << e.what() << '\n';
+		}
+	}
 	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
@@ -134,8 +164,7 @@ std::string	Client::BuildHeader(size_t size)
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
 	stream << "Content-Type: text/html" << "\r\n";
-	if (size > 0)
-		stream << "Content-Length: " << size << "\r\n";
+	stream << "Content-Length: " << size << "\r\n";
 	stream << "\r\n";
 	return (stream.str());
 }
@@ -179,37 +208,19 @@ std::string	Client::BuildGet()
 {
 	std::string	ret;
 
-	//std::cout << "building get, (uri): >" << _request.uri << "<" << std::endl;
-	//check if is asking for file(including cgi) or an index
-	//	is an index if uri equals path of location
+	_response_status = 200;
 	const server_location *s = locationByUri(_request.uri, *this->_s);
-	std::cout << "en get : " << s << std::endl;
-	std::cout << "uri: >" << _request.uri << "<, server_location: " << s << std::endl;
-	if (s)
+	if (!s)
 	{
-		/*
-		*	locationByUri not working properly
-		*/
-		std::cout << "autoindex: " << s->autoindex << std::endl;
-		std::cout << "path: " << s->path << std::endl;
-		std::cout << "root: " << s->root << std::endl;
-		std::cout << "write_enabled: " << s->write_enabled << std::endl;
-		std::cout << "write_path: " << s->write_path << std::endl;
+		_response_status = 404;
+		return ("");
 	}
-	else
-		return "404 location not found"; //realmente pagina de error y mensaje de error
-		//a lo mejor podríamps hacer una funcion de send_error que le mandemos el número
-		//de error como parámetro y construya el mensaje con la página, o devuelva mensaje
-		//sin body en caso de no haber página.
+
 
 	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
 	std::cout << "file in uri >" << file_in_uri << "<" << std::endl;
 	if (file_in_uri == "") //index
 	{
-		//search for an index, if found one write it on the response
-		//if not found but autoindex on create autoindex
-		//else 404
-		std::cout << "not file, just index" << std::endl;
 		for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
 		{
 			std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
@@ -228,21 +239,19 @@ std::string	Client::BuildGet()
 			std::cout << "Sending autoindex" << std::endl;
 			return (GetAutoIndex(s->root, s->path));
 		}
-		std::cout << "Not autoindex, sending error page or something" << std::endl;
-		return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
+		_response_status = 404;
+		return ("");
 	}
 	else
 	{
-		std::cout << "a file it is" << std::endl;
-		std::cout << "trying file >" << s->root << file_in_uri << "<" << std::endl;
 		try
 		{
 			return (ExtractFile(s->root + file_in_uri));
 		}
 		catch(const std::exception& e)
 		{
-			std::cout << "file not found, return error page if available" << std::endl;
-			return (ExtractFile("/Users/test/Desktop/wardit/webserv/error_pages/404_not_found.html"));
+			_response_status = 404;
+			return ("");
 		}
 	}
 	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
@@ -252,16 +261,15 @@ std::string	Client::BuildGet()
 void	Client::BuildPost()
 {
 	const server_location *s = locationByUri(_request.uri, *this->_s);
-	std::cout << "en post = " << std::endl;
-	std::cout << "autoindex: " << s->autoindex << std::endl;
-	std::cout << "path: " << s->path << std::endl;
-	std::cout << "root: " << s->root << std::endl;
-	std::cout << "write_enabled: " << s->write_enabled << std::endl;
-	std::cout << "write_path: " << s->write_path << std::endl;
-	if (s->write_enabled)
+
+	_response_status = 200;
+	if (!s)
 	{
+		_response_status = 404;
+		return ;
+	}
+	if (s->write_enabled)
 		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-		{
 			if (_request.mult_form_data[i].filename != "")
 			{
 				std::ofstream file;
@@ -269,37 +277,15 @@ void	Client::BuildPost()
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
-					std::cout << "writting " << _request.mult_form_data[i].body.length() << " bytes" << std::endl;
 					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
-					//file << _request.mult_form_data[i].body.c_str() << std::endl;
 					file.close();
 				}
 				else
 				{
-				_response_status = 500;
-				std::cout << "server: internal error" << std::endl;
+					_response_status = 500;
+					return ;
 				}
 			}
-			else
-			{
-				std::ofstream file;
-				_req_file = s->root + "/index.html";
-				file.open(_req_file.c_str(), std::ios::app);
-				if (file.is_open() && file.good())
-				{
-					file << "<html>\n<body>\n<p>This is a new post</p>\n<p>"
-						<< _request.mult_form_data[i].body
-						<< "</p></body>\n</html>\n" << std::endl;
-					file.close();
-				}
-				else
-				{
-				_response_status = 500;
-				std::cout << "server: internal error" << std::endl;
-				}
-			}
-		}
-	}
 	std::cout << "========================================" << std::endl;
 }
 
@@ -310,7 +296,15 @@ std::string	Client::BuildDelete()
 
 	_req_file = s->write_path + _request.uri;
 
-	unlink(_req_file.c_str());
+	_response_status = 200;
+	if (unlink(_req_file.c_str()) < 0)
+	{
+		_response_status = 500;
+		if (errno == EACCES || errno == EPERM || errno == EROFS)
+			_response_status = 403;
+		return ("");
+	}
+
 	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
 	return (ret);
 }
@@ -339,6 +333,12 @@ std::map<int, std::string>	Client::StatusMessages()
 		map[503] = "Service Unavailable";
 		map[505] = "HTTP Version Not Supported";
 		return (map);
+}
+
+void		Client::setServer(std::vector<server_location> *s, std::map<int, std::string> *epages)
+{
+	_s = s;
+	_error_pages = epages;
 }
 
 void		Client::setServer(std::vector<server_location> *s)
