@@ -9,7 +9,8 @@ Client::Client() :
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
-	_stat_msg(StatusMessages())
+	_stat_msg(StatusMessages()),
+	_time_check(ft_now())
 {}
 
 Client::Client(int fd) : 
@@ -18,7 +19,8 @@ Client::Client(int fd) :
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
-	_stat_msg(StatusMessages())
+	_stat_msg(StatusMessages()),
+	_time_check(ft_now())
 {}
 
 Client::Client(Client const &copy) :
@@ -28,7 +30,8 @@ Client::Client(Client const &copy) :
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
-	_stat_msg(copy._stat_msg)
+	_stat_msg(copy._stat_msg),
+	_time_check(copy._time_check)
 {} 
 
 int		Client::getFd() const
@@ -51,6 +54,7 @@ void	Client::getParseChunk(char *chunck, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
+	_time_check = ft_now();
 	std::cout << "parsing new chunck of size: " << bytes << std::endl;
 	if ((temp = _request.parse_chunk(chunck, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
@@ -350,4 +354,11 @@ void Client::reset()
 	_request.initialize(this->_max_body_size);
 	_response_sent = 0;
 	_response_left = 0;
+}
+
+bool Client::hasTimedOut()
+{
+	if (ft_now() - TIMEOUT >= _time_check)
+		return (true);
+	return (false);
 }

@@ -15,6 +15,8 @@
 #include "Http_req.hpp"
 #include "utils.hpp"
 
+#define TIMEOUT 3000 // in miliseconds
+
 class Client
 {
 private:
@@ -31,6 +33,7 @@ private:
 	bool						_is_autoindex;
 	std::string					_req_file;
 	const std::vector<server_location>	*_s;
+	uint64_t					_time_check;
 	
 public:
 
@@ -62,4 +65,5 @@ public:
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
 	void reset();
+	bool hasTimedOut();
 };
