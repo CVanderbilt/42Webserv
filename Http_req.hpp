@@ -52,6 +52,7 @@ class Http_req
 		parsing_status 						status;
 		std::string							method;
 		std::string							uri;
+		std::string							file_uri;
 		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;

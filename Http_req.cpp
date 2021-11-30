@@ -19,6 +19,7 @@ void Http_req::initialize(size_t max_size_body)
 	_mfd_size = 0;
 	max_size = max_size_body;
 	status = Http_req::PARSE_INIT;
+	file_uri = "";
 
 	this->head.clear();
 	this->body.clear();
@@ -158,7 +159,10 @@ void Http_req::parse_method(void)
 		return ;
 	}
 	uri = line.substr(eol + 1, sep - eol - 1);
-	
+	size_t pos_slash = uri.find_last_of('/');
+	size_t pos_qm = uri.find('?');
+	if (pos_qm > pos_slash)
+		file_uri = uri.substr(pos_slash + 1, pos_qm - pos_slash - 1);
 	protocol = line.substr(sep + 1, line.npos);
 	if (protocol != "HTTP/1.1")
 		status = PARSE_ERROR;
@@ -219,19 +223,19 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		switch (status)
 		{
 			case PARSE_INIT:
-			std::cout << "method" << std::endl;
+//			std::cout << "method" << std::endl;
 				parse_method();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_HEAD:
-			std::cout << "head" << std::endl;
+//			std::cout << "head" << std::endl;
 				parse_head();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_BODY:
-			std::cout << "body" << std::endl;
+//			std::cout << "body" << std::endl;
 				parse_body();
 				break ;
 			default:
