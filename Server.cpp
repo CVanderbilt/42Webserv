@@ -93,12 +93,12 @@ void	Server::server_start()
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_REUSEADDR");
 	}
-/*	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
+	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
 	{
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_NOSIGPIPE");
 	}
-*/	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
+	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
 	{
 		close (_server_fd);
 		throw ServerException("In bind", "failed for some reason");
@@ -109,7 +109,7 @@ void	Server::server_start()
 		throw ServerException("In listen", "failed for some reason");
 	}
 	_pfds[0].fd = _server_fd;
-	_pfds[0].events = POLLIN | POLLOUT;
+	_pfds[0].events = POLLIN;
 	_fd_count = 1;
 }
 
@@ -157,8 +157,8 @@ void	Server::read_message(int i)
 	}
 	else if (numbytes == 0)
 	{
+		std::cout << "server: client " << _pfds[i].fd << " closed connection" << std::endl;
 		close_fd_del_client(i);
-		std::cout << "server: client closed connection" << std::endl;
 	}
 	else
 	{
@@ -209,15 +209,15 @@ void	Server::server_listen()
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
-				if (1 || (cnt != head_info.end() && cnt->second == " Close")) //aqui todavía no está implementado lo de quitar los espacios
+				if (/*1 || */(cnt != head_info.end() && cnt->second == "close")) //aqui todavía no está implementado lo de quitar los espacios
 				{
-					std::cout << "Closing beacuse was not keep alive" << std::endl;
-					close_fd_del_client(i);
+					std::cout << "Closing " << _pfds[i].fd << " beacuse was not keep alive" << std::endl;
+					close_fd_del_client(i); //todo error msg
 				}
 				else
 				{
 					_clients[_pfds[i].fd].reset();
-					std::cout << "Client reset (keeping alive)" << std::endl;
+					std::cout << "Client " << _pfds[i].fd << " reset (keeping alive)" << std::endl;
 				}
 			}
 			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
@@ -254,7 +254,7 @@ void	Server::del_from_pfds(int i)
 
 void	Server::close_fd_del_client(int i)
 {
-	std::cout << "closing client" << std::endl;
+	std::cout << "closing client" << _pfds[i].fd << std::endl;
 	close(_pfds[i].fd);
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;

@@ -87,16 +87,16 @@ void Http_req::parse_body_multiform(void)
 	ss << body;
 	while (std::getline(ss, line))
 	{
+		if (line.compare("--" + head["boundary"] + "\r") == 0)
+		{
+			Mult_Form_Data new_mfd;
+			mult_form_data.push_back(new_mfd);
+			_mfd_size++;
+			in_body = false;
+		}
 		if (!in_body)
 		{
-			if (line.compare("--" + head["boundary"] + "\r") == 0)
-			{
-				Mult_Form_Data new_mfd;
-				mult_form_data.push_back(new_mfd);
-				_mfd_size++;
-				in_body = false;
-			}
-			else if ((pos_1 = line.find(':')) != line.npos)
+			if ((pos_1 = line.find(':')) != line.npos)
 			{
 				if (line.compare(0, pos_1, "Content-Disposition") == 0)
 				{
@@ -196,14 +196,16 @@ void Http_req::parse_head(void)
 		return ;
 	}
 	std::string key = line.substr(0, eol);	//key
+	while (isspace(line[eol + 1]))
+		eol++;
 	line = line.substr(eol + 1, line.npos);	//value
 	if (head.count(key))	//key already exists
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
-	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 19, " multipart/form-data"))
+	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 18, "multipart/form-data"))
 	{
-		head[key] = " multipart/form-data";
+		head[key] = "multipart/form-data";
 		eol = line.find("=");
 		line = line.substr(eol + 1, line.npos);
 		head["boundary"] = line;
@@ -241,7 +243,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		}
 		break ;
 	}
-	if (status == PARSE_END && body != "" && (head["Content-Type"] == " multipart/form-data" || head["content-type"] == " multipart/form-data"))
+	if (status == PARSE_END && body != "" && (head["Content-Type"] == "multipart/form-data" || head["content-type"] == "multipart/form-data"))
 	{
 		status = PARSE_BODY;
 		parse_body_multiform();
@@ -262,7 +264,7 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 		os << it->first << ":" << it->second << std::endl;
 	os << "Body:" << std::endl;
 	os << obj.body << std::endl;
-	if (obj.head.find("Content-Type")->second == " multipart/form-data" || obj.head.find("Content-Type")->second == " multipart/form-data")
+/*	if (obj.head.find("content-type")->second == "multipart/form-data")
 	{
 		os << std::endl << "XXXXXXXXXXXXXXXXXXXXX     Multipart/form-data   XXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
 		os << "vector mfd size = " << obj.mult_form_data.size() << std::endl;
@@ -275,5 +277,5 @@ std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
 			os << "body:" << obj.mult_form_data[i].body << std::endl << std::endl;
 		}
 	}
-	return (os);
+*/	return (os);
 }

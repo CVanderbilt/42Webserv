@@ -164,8 +164,7 @@ std::string	Client::BuildHeader(size_t size)
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
 	stream << "Content-Type: text/html" << "\r\n";
-	if (size > 0)
-		stream << "Content-Length: " << size << "\r\n";
+	stream << "Content-Length: " << size << "\r\n";
 	stream << "\r\n";
 	return (stream.str());
 }
