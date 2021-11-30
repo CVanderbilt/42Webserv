@@ -1,5 +1,14 @@
 #include "utils.hpp"
 #include <iostream>
+#include <sys/time.h>
+
+uint64_t ft_now(void)
+{
+	static struct timeval	tv;
+
+	gettimeofday(&tv, NULL);
+	return ((tv.tv_sec * (uint64_t)1000) + (tv.tv_usec / 1000));
+}
 
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {

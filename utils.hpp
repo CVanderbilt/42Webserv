@@ -30,5 +30,6 @@ bool		isPort(std::string p);
 int			FileExists(std::string file);
 std::string ExtractFile(std::string file);
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs);
+uint64_t ft_now(void);
 
 #endif
