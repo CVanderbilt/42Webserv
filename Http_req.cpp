@@ -131,6 +131,8 @@ void Http_req::parse_body_multiform(void)
 	//		mult_form_data[_mfd_size - 1].body += line + "\n";
 		}
 	}
+	if (status != PARSE_END)
+		status = PARSE_ERROR;
 }
 
 void Http_req::parse_method(void)
@@ -246,7 +248,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		status = PARSE_BODY;
 		parse_body_multiform();
 		std::cout << "body size = " << body.length() << std::endl;
-		std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
+		//std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
 	}
 	return (status);
 }
