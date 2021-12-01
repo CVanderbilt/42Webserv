@@ -37,6 +37,7 @@ private:
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
+	std::map<int, std::string>		_error_pages;
 
 	void			accept_connection();
 	void			read_message(int i);
