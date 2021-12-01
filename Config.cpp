@@ -43,6 +43,8 @@ std::string TrimLine(std::string line)
 			break ;
 		}
 	ret = line.substr(0, end);
+	if (ret.length() == 0)
+		return (ret);
 	ret = ret.substr(start, ret.npos);
 	return (ret);
 }
