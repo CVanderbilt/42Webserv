@@ -175,7 +175,6 @@ std::string	Client::BuildHeader(size_t size)
 
 std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
 {
-	std::cout << "BUILDING AUTOINDEX" << std::endl;
 	std::string ret = "<!DOCTYPE html>\n";
 	ret += "<html>\n";
 	ret += "<head>\n";
