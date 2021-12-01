@@ -27,12 +27,13 @@ Server::Server(server_config const& s) :
 			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
 			_server_name = splitIntoVector(it->second, " ");
-		else if (it->first == "error")
+		else if (it->first.length() == 3 && (it->first[0] == '4' || it->first[0] == '5') && 
+		isdigit(it->first[1]) && isdigit(it->first[2]))
 		{
 			std::vector<std::string> aux = splitIntoVector(it->second, " ");
-			if (aux.size() != 2)
+			if (aux.size() != 1)
 				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
-			_error_pages[std::atoi(aux[0].c_str())] = aux[1]; //también revisar que aux[0] mida 3 y sean tres digitos
+			_error_pages[std::atoi(it->first.c_str())] = aux[0];
 		}
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
@@ -72,6 +73,35 @@ Server::Server(server_config const& s) :
 		*	to do: check if a mandatory item was not present (ex root or path).
 		*/
 	}
+	server_info aux;
+	aux.error_pages = _error_pages;
+	aux.locations = _server_location;
+	aux.names = _server_name;
+	_configurations.push_back(aux);
+}
+
+void	Server::show()
+{
+	std::cout << "=================================================" << std::endl;
+	std::cout << "Servers on port: " << _port << std::endl;
+	for (std::vector<server_info>::iterator it = _configurations.begin();
+		it != _configurations.end(); it++)
+	{
+		std::cout << "names:";
+		for (std::vector<std::string>::iterator it2 = it->names.begin();
+		it2 != it->names.end(); it2++)
+			std::cout << " " << *it2;
+		std::cout << std::endl << "locations(root):";
+		for (std::vector<server_location>::iterator it2 = it->locations.begin();
+			it2 <= it->locations.end(); it2++)
+			std::cout << " " << it2->root;
+		std::cout << std::endl << "error pages:";
+		for (std::map<int, std::string>::iterator it2 = it->error_pages.begin();
+			it2 != it->error_pages.end(); it2++)
+			std::cout << " " << it2->first << "->" << it2->second;
+		std::cout << std::endl;
+	}
+	std::cout << "=================================================" << std::endl;
 }
 
 void	Server::server_start()
@@ -130,8 +160,9 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
+		//	!!!
 		new_client.setServer(&_server_location, &_error_pages);
-
+		//	!!!
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
 		std::cout << "server: new connection on socket " << new_fd << std::endl;

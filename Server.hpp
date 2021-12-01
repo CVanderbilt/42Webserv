@@ -26,6 +26,14 @@ class Server
 {
 private:
 
+	struct	server_info
+	{
+		std::vector<std::string>		names;
+		std::map<int, std::string>		error_pages;
+		std::vector<server_location>	locations;
+		//client size, no se si algo más, sobre la marcha
+	};
+
 	int								_server_fd;
 	size_t							_fd_count;
 	size_t							_fd_size;
@@ -38,6 +46,7 @@ private:
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
 	std::map<int, std::string>		_error_pages;
+	std::vector<server_info>		_configurations;
 
 	void			accept_connection();
 	void			read_message(int i);
@@ -54,6 +63,8 @@ public:
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();
+
+	void			show();
 
 	class ServerException : public std::exception
 	{
