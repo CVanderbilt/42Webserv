@@ -296,6 +296,7 @@ void	Server::add_to_pfds(int new_fd)
 
 void	Server::del_from_pfds(int i)
 {
+	//
 	std::cout << "i(" << i << "), count: " << _fd_count << "), fd_list:";
 	for (size_t i = 0; i < _fd_count; i++)
 		std::cout << " " << _pfds[i].fd;
