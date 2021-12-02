@@ -21,19 +21,22 @@ Server::Server(server_config const& s) :
 	_addrlen(sizeof(_addr)),
 	_pfds(new pollfd[_fd_size])
 {
+	std::vector<std::string> server_names;
+	std::map<int, std::string> error_pages;
+	std::vector<server_location> server_locations;
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
 			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
-			_server_name = splitIntoVector(it->second, " ");
+			server_names = splitIntoVector(it->second, " ");
 		else if (it->first.length() == 3 && (it->first[0] == '4' || it->first[0] == '5') && 
 		isdigit(it->first[1]) && isdigit(it->first[2]))
 		{
 			std::vector<std::string> aux = splitIntoVector(it->second, " ");
 			if (aux.size() != 1)
 				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
-			_error_pages[std::atoi(it->first.c_str())] = aux[0];
+			error_pages[std::atoi(it->first.c_str())] = aux[0];
 		}
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
@@ -43,27 +46,27 @@ Server::Server(server_config const& s) :
 	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); ++it)
 	{
 		idx++;
-		_server_location.resize(_server_location.size() + 1);
-		_server_location[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		server_locations.resize(server_locations.size() + 1);
+		server_locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
-				_server_location[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
+				server_locations[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
 			else if (lit->first == "autoindex")
 			{
 				if (lit->second == "on")
-					_server_location[idx].autoindex = true;
+					server_locations[idx].autoindex = true;
 				else if (lit->second != "off")
 					throw ServerException("Configuration", "Invalid value of autoindex field");
 			}
 			else if (lit->first == "cgi")
-				_server_location[idx].cgi = splitIntoVector(lit->second, " ");
+				server_locations[idx].cgi = splitIntoVector(lit->second, " ");
 			else if (lit->first == "index")
-				_server_location[idx].index = splitIntoVector(lit->second, " ");
+				server_locations[idx].index = splitIntoVector(lit->second, " ");
 			else if (lit->first == "write_enabled")
 			{
-				_server_location[idx].write_enabled = true;
-				_server_location[idx].write_path = lit->second;
+				server_locations[idx].write_enabled = true;
+				server_locations[idx].write_path = lit->second;
 			}
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
@@ -74,9 +77,9 @@ Server::Server(server_config const& s) :
 		*/
 	}
 	server_info aux;
-	aux.error_pages = _error_pages;
-	aux.locations = _server_location;
-	aux.names = _server_name;
+	aux.error_pages = error_pages;
+	aux.locations = server_locations;
+	aux.names = server_names;
 	_configurations.push_back(aux);
 }
 
@@ -92,9 +95,9 @@ void	Server::show()
 		it2 != it->names.end(); it2++)
 			std::cout << " " << *it2;
 		std::cout << std::endl << "locations(root):";
-		for (std::vector<server_location>::iterator it2 = it->locations.begin();
-			it2 <= it->locations.end(); it2++)
-			std::cout << " " << it2->root;
+		for (std::vector<server_location>::const_iterator it2 = it->locations.begin();
+			it2 < it->locations.end(); it2++)
+			std::cout << " " << it2->root.c_str();
 		std::cout << std::endl << "error pages:";
 		for (std::map<int, std::string>::iterator it2 = it->error_pages.begin();
 			it2 != it->error_pages.end(); it2++)
@@ -161,9 +164,11 @@ void	Server::accept_connection()
 	{
 		Client new_client(new_fd);
 		//	!!!
-		new_client.setServer(&_server_location, &_error_pages);
+		new_client.setServer(&_configurations[0].locations, &_configurations[0].error_pages);
 		//	!!!
 		add_to_pfds(new_fd);
+		if (_clients.count(new_fd) > 0)
+			std::cout << "=====================================================" << std::endl;
 		_clients[new_fd] = new_client;
 		std::cout << "server: new connection on socket " << new_fd << std::endl;
 	}
@@ -210,9 +215,20 @@ void	Server::server_listen()
 	}
 	for (size_t i = 0; i < _fd_count; i++)
 	{
-		if (_pfds[i].revents & POLLIN)
+		if (_pfds[i].fd != _server_fd && _clients.count(_pfds[i].fd) == 0)
+		{
+			std::cout << "i: " << i << ", fd: " << _pfds[i].fd << " not found on clients" << std::endl;
+			_pfds[i].fd = -1;
+		}
+		else if (_pfds[i].fd != _server_fd && _clients.count(_clients[_pfds[i].fd].hasTimedOut()))
+		{
+			std::cout << "fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
+			close_fd_del_client(i);
+		}
+		else if (_pfds[i].revents & POLLIN)
 		{
 			std::cout << ">>>>>>>>>INCOMING CONNECTION<<<<<<<<<" << std::endl;
+			std::cout << "from client: " << i << ", fd: " << _pfds[i].fd << std::endl; //client 0 -> server socket
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
@@ -272,6 +288,7 @@ void	Server::add_to_pfds(int new_fd)
 		delete[] _pfds;
 		_pfds = temp;		
 	}
+	std::cout << "created client on pos " << _fd_count << std::endl;
 	_pfds[_fd_count].fd = new_fd;
 	_pfds[_fd_count].events = POLLIN | POLLOUT;
 	_fd_count++;
@@ -279,14 +296,23 @@ void	Server::add_to_pfds(int new_fd)
 
 void	Server::del_from_pfds(int i)
 {
-	_pfds[i] = _pfds[_fd_count];
+	std::cout << "i(" << i << "), count: " << _fd_count << "), fd_list:";
+	for (size_t i = 0; i < _fd_count; i++)
+		std::cout << " " << _pfds[i].fd;
+	std::cout << std::endl;
+	_pfds[i] = _pfds[_fd_count - 1];
 	_fd_count--;
+	std::cout << "fd_list now:";
+	for (size_t i = 0; i < _fd_count; i++)
+		std::cout << " " << _pfds[i].fd;
+	std::cout << std::endl;
 }
 
 void	Server::close_fd_del_client(int i)
 {
-	std::cout << "closing client" << _pfds[i].fd << std::endl;
-	close(_pfds[i].fd);
+	std::cout << "closing client (" << i << "): " << _pfds[i].fd << std::endl;
+	if (close(_pfds[i].fd) < 0)
+		std::cout << "problem closing" << std::endl;
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;
 }
@@ -295,6 +321,30 @@ void	Server::send_response(int i)
 {
 	size_t val_sent;
 
+	//desde aqui----------------------------------------------
+	server_info *ptr = &_configurations[0];
+	const Http_req req = _clients[_pfds[i].fd].GetRequest();
+	std::string host_name = "";
+	if (req.head.count("Host"))
+		host_name = req.head.find("Host")->second;
+	else if (req.head.count("host"))
+		host_name = req.head.find("host")->second;
+	if (host_name != "")
+	{
+		host_name = host_name.find_last_of(':') == host_name.npos ? host_name : host_name.substr(0, host_name.find_last_of(':') - 1);
+		for (size_t j = 1; j < _configurations.size(); j++)
+		{
+			if (std::find(_configurations[i].names.begin(), _configurations[i].names.end(), host_name) != _configurations[i].names.end())
+			{
+				ptr = &_configurations[j];
+				break ;
+			}
+		}
+	}
+	//hasta aqui para decidir que configuración usar en el cliente
+	//se la podemos pasar por el buildresponse en vez de setserver
+	//de momento set server
+	_clients[_pfds[i].fd].setServer(ptr);
 	_clients[_pfds[i].fd].BuildResponse();
 	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);

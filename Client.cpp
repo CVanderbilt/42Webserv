@@ -350,6 +350,11 @@ void		Client::setServer(std::vector<server_location> *s)
 	_s = s;
 }
 
+void		Client::setServer(server_info *s)
+{
+	_s2 = s;
+}
+
 const Http_req&	Client::GetRequest()
 {
 	return (_request);

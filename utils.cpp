@@ -97,3 +97,12 @@ server_location::server_location(const server_location& other):
 	write_enabled(other.write_enabled),
 	write_path(other.write_path)
 {}
+
+server_info::server_info()
+{}
+
+server_info::server_info(const server_info& other):
+	names(other.names),
+	error_pages(other.error_pages),
+	locations(other.locations)
+{}
