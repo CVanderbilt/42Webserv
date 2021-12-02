@@ -1,15 +1,13 @@
 #include "Client.hpp"
 
-#include <sys/types.h>
-#include <dirent.h>
-
 Client::Client() : 
 	_fd(-1),
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
-	_stat_msg(StatusMessages())
+	_stat_msg(StatusMessages()),
+	_is_CGI(false)
 {
 	_error_pages = NULL;
 }
@@ -20,7 +18,8 @@ Client::Client(int fd) :
 	_response_sent(0),
 	_response_left(0),
 	_max_body_size(1000000),
-	_stat_msg(StatusMessages())
+	_stat_msg(StatusMessages()),
+	_is_CGI(false)
 {
 	_error_pages = NULL;
 }
@@ -32,7 +31,8 @@ Client::Client(Client const &copy) :
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
-	_stat_msg(copy._stat_msg)
+	_stat_msg(copy._stat_msg),
+	_is_CGI(copy._is_CGI)
 {
 	_error_pages = NULL;
 } 
@@ -61,7 +61,11 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
+	{
 		_status = 1;
+		_is_CGI = isCGI();
+		std::cout << "isCGI = " << _is_CGI << std::endl;
+	}
 	std::cout << _request << std::endl;
 }
 
@@ -215,43 +219,47 @@ std::string	Client::BuildGet()
 		_response_status = 404;
 		return ("");
 	}
-
-
-	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
-	std::cout << "file in uri >" << file_in_uri << "<" << std::endl;
-	if (file_in_uri == "") //index
+	if (_is_CGI)
 	{
-		for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+		CGI cgi(_request, s);
+		cgi.executeCGI();
+	}
+	else 
+	{
+		if (_request.file_uri == "") //index
 		{
-			std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
+			for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+			{
+				std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
+				try
+				{
+					return (ExtractFile(s->root + *it));
+				}
+				catch(const std::exception& e)
+				{
+					std::cerr << s->root + *it << " not found" << std::endl;
+				}
+			}
+			std::cout << "Not index found" << std::endl;
+			if (s->autoindex)
+			{
+				std::cout << "Sending autoindex" << std::endl;
+				return (GetAutoIndex(s->root, s->path));
+			}
+			_response_status = 404;
+			return ("");
+		}
+		else
+		{
 			try
 			{
-				return (ExtractFile(s->root + *it));
+				return (ExtractFile(s->root + _request.file_uri));
 			}
 			catch(const std::exception& e)
 			{
-				std::cerr << s->root + *it << " not found" << std::endl;
+				_response_status = 404;
+				return ("");
 			}
-		}
-		std::cout << "Not index found" << std::endl;
-		if (s->autoindex)
-		{
-			std::cout << "Sending autoindex" << std::endl;
-			return (GetAutoIndex(s->root, s->path));
-		}
-		_response_status = 404;
-		return ("");
-	}
-	else
-	{
-		try
-		{
-			return (ExtractFile(s->root + file_in_uri));
-		}
-		catch(const std::exception& e)
-		{
-			_response_status = 404;
-			return ("");
 		}
 	}
 	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
@@ -268,24 +276,32 @@ void	Client::BuildPost()
 		_response_status = 404;
 		return ;
 	}
-	if (s->write_enabled)
-		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-			if (_request.mult_form_data[i].filename != "")
-			{
-				std::ofstream file;
-				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
-				file.open(_req_file.c_str());
-				if (file.is_open() && file.good())
+	if (_is_CGI)
+	{
+		CGI cgi(_request, s);
+		cgi.executeCGI();
+	}
+	else
+	{
+		if (s->write_enabled)
+			for (size_t i = 0; i < _request.mult_form_data.size(); i++)
+				if (_request.mult_form_data[i].filename != "")
 				{
-					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
-					file.close();
+					std::ofstream file;
+					_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+					file.open(_req_file.c_str());
+					if (file.is_open() && file.good())
+					{
+						file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+						file.close();
+					}
+					else
+					{
+						_response_status = 500;
+						return ;
+					}
 				}
-				else
-				{
-					_response_status = 500;
-					return ;
-				}
-			}
+	}
 	std::cout << "========================================" << std::endl;
 }
 
@@ -363,18 +379,22 @@ bool Client::isCGI()
 {
 	std::string	str;
 	size_t		i;
-
+	
 	if ((i = _request.uri.find("?")) != _request.uri.npos)
 		str = _request.uri.substr(0, i);
 	else
 		str = _request.uri;
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
+std::cout << "str = " << str << std::endl;
 	const server_location *s = locationByUri(_request.uri, *this->_s);
 	if(!s)
 		return false;
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
+	{
+std::cout << "cgis = " << *it << std::endl;
 		if (str == *it)
 			return true;
+	}
 	return false;
 }

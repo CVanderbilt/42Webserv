@@ -64,6 +64,10 @@ Server::Server(server_config const& s) :
 				_server_location[idx].write_enabled = true;
 				_server_location[idx].write_path = lit->second;
 			}
+			else if (lit->first == "port" && isPort(lit->second))
+				_server_location[idx].port = lit->second.c_str();
+			else if (lit->first == "server_name")
+				_server_location[idx].server_name = splitIntoVector(lit->second, " ")[0];
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 

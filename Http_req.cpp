@@ -20,6 +20,7 @@ Http_req::Http_req(Http_req const &copy):
 	method(copy.method),
 	uri(copy.uri),
 	file_uri(copy.file_uri),
+	query_string(copy.query_string),
 	protocol(copy.protocol),
 	head(copy.head),
 	body(copy.body),
@@ -178,6 +179,11 @@ void Http_req::parse_method(void)
 	size_t pos_qm = uri.find('?');
 	if (pos_qm > pos_slash)
 		file_uri = uri.substr(pos_slash + 1, pos_qm - pos_slash - 1);
+	if (pos_qm != uri.npos)
+		query_string = uri.substr(pos_qm + 1, uri.npos - pos_qm - 1);
+	std::cout << "URI = " << uri << std::endl;	
+	std::cout << "URI_FILE = " << file_uri << std::endl;	
+	std::cout << "QUERY STRING = " << query_string << std::endl;	
 	protocol = line.substr(sep + 1, line.npos);
 	if (protocol != "HTTP/1.1")
 		status = PARSE_ERROR;
@@ -220,8 +226,9 @@ void Http_req::parse_head(void)
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
-	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 18, "multipart/form-data"))
+	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 18, "multipart/form-data") == 0)
 	{
+		std::cout << "line.compare(0, 18, multipart/form-data) = " << line.compare(0, 18, "multipart/form-data") << std::endl;
 		head[key] = "multipart/form-data";
 		eol = line.find("=");
 		line = line.substr(eol + 1, line.npos);
@@ -265,7 +272,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		status = PARSE_BODY;
 		parse_body_multiform();
 		std::cout << "body size = " << body.length() << std::endl;
-		//std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
+	//	std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
 	}
 	return (status);
 }

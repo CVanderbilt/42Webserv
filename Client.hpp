@@ -13,8 +13,11 @@
 #include <vector>
 #include <sstream>
 #include <cerrno>
+#include <sys/types.h>
+#include <dirent.h>
 #include "Http_req.hpp"
 #include "utils.hpp"
+#include "CGI.hpp"
 
 class Client
 {

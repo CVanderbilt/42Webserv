@@ -2,26 +2,30 @@
 
 #include "Http_req.hpp"
 #include "utils.hpp"
-#include "Client.hpp"
-#include "Config.hpp"
-#include "Server.hpp"
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <poll.h>
+#include <string.h>
 
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
 #define SIDE_OUT 0
 #define SIDE_IN 1
+#define BUFFER_SIZE 4096
 
 class CGI
 {
 	private:
-		std::string	_path_cgi;
-		std::string	_name_cgi;
-		std::string	_response_cgi;
-		int			_CGI_fd;
-		Http_req	_request;
+		const server_location *_serv_loc;
+		Http_req		_request;
+		std::string		_path_cgi;
+		std::string		_name_cgi;
+		std::string		_response_cgi;
+		int				_CGI_fd;
 		std::vector<std::string> _env_vec;
 
 		std::vector<std::string> envToVector(char **env);
@@ -32,7 +36,7 @@ class CGI
 
 	public:
 		CGI();
-		CGI(Http_req const &request);
+		CGI(Http_req request, const server_location *s);
 		~CGI(){};
 		CGI(CGI const &copy);
 

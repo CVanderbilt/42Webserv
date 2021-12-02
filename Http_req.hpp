@@ -53,6 +53,7 @@ class Http_req
 		std::string							method;
 		std::string							uri;
 		std::string							file_uri;
+		std::string							query_string;
 		std::string							protocol;
 		std::map<std::string, std::string>	head;
 		std::string							body;
