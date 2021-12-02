@@ -21,22 +21,25 @@ Server::Server(server_config const& s) :
 	_addrlen(sizeof(_addr)),
 	_pfds(new pollfd[_fd_size])
 {
-	std::vector<std::string> server_names;
-	std::map<int, std::string> error_pages;
-	std::vector<server_location> server_locations;
+	addServer(s);
+}
+
+void Server::addServer(server_config const& s)
+{
+	server_info ret;
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
 			_port = std::atoi(it->second.c_str());
 		else if (it->first == "server_name")
-			server_names = splitIntoVector(it->second, " ");
+			ret.names = splitIntoVector(it->second, " ");
 		else if (it->first.length() == 3 && (it->first[0] == '4' || it->first[0] == '5') && 
 		isdigit(it->first[1]) && isdigit(it->first[2]))
 		{
 			std::vector<std::string> aux = splitIntoVector(it->second, " ");
 			if (aux.size() != 1)
 				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
-			error_pages[std::atoi(it->first.c_str())] = aux[0];
+			ret.error_pages[std::atoi(it->first.c_str())] = aux[0];
 		}
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
@@ -46,41 +49,33 @@ Server::Server(server_config const& s) :
 	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); ++it)
 	{
 		idx++;
-		server_locations.resize(server_locations.size() + 1);
-		server_locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		ret.locations.resize(ret.locations.size() + 1);
+		ret.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
-				server_locations[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
+				ret.locations[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
 			else if (lit->first == "autoindex")
 			{
 				if (lit->second == "on")
-					server_locations[idx].autoindex = true;
+					ret.locations[idx].autoindex = true;
 				else if (lit->second != "off")
 					throw ServerException("Configuration", "Invalid value of autoindex field");
 			}
 			else if (lit->first == "cgi")
-				server_locations[idx].cgi = splitIntoVector(lit->second, " ");
+				ret.locations[idx].cgi = splitIntoVector(lit->second, " ");
 			else if (lit->first == "index")
-				server_locations[idx].index = splitIntoVector(lit->second, " ");
+				ret.locations[idx].index = splitIntoVector(lit->second, " ");
 			else if (lit->first == "write_enabled")
 			{
-				server_locations[idx].write_enabled = true;
-				server_locations[idx].write_path = lit->second;
+				ret.locations[idx].write_enabled = true;
+				ret.locations[idx].write_path = lit->second;
 			}
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
-
 		}
-		/*
-		*	to do: check if a mandatory item was not present (ex root or path).
-		*/
 	}
-	server_info aux;
-	aux.error_pages = error_pages;
-	aux.locations = server_locations;
-	aux.names = server_names;
-	_configurations.push_back(aux);
+	_configurations.push_back(ret);
 }
 
 void	Server::show()
@@ -163,9 +158,6 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
-		//	!!!
-		new_client.setServer(&_configurations[0].locations, &_configurations[0].error_pages);
-		//	!!!
 		add_to_pfds(new_fd);
 		if (_clients.count(new_fd) > 0)
 			std::cout << "=====================================================" << std::endl;
@@ -237,7 +229,8 @@ void	Server::server_listen()
 		}
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			std::cout << "<<<<<<<<<READY TO ANSWER>>>>>>>>>" << std::endl;
+			if (_pfds[i].fd == _server_fd) //por si las moscas
+				continue ;
 			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
 			if (_clients.count(_pfds[i].fd))
 			{
@@ -245,18 +238,16 @@ void	Server::server_listen()
 				if (status >= 0)
 					send_response(i);
 				else
-				{
-					std::cout << "<<<<<<<<<NOT READY TO ANSWER>>>>>>>>>" << std::endl << std::endl;
 					continue;
-				}
 			}
+			std::cout << "<<<<<<<<<READY TO ANSWER>>>>>>>>>" << std::endl;
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
 				close_fd_del_client(i);
 			else
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
-				if (/*1 || */(cnt != head_info.end() && cnt->second == "close")) //aqui todavía no está implementado lo de quitar los espacios
+				if (cnt != head_info.end() && cnt->second == "close")
 				{
 					std::cout << "Closing " << _pfds[i].fd << " beacuse was not keep alive" << std::endl;
 					close_fd_del_client(i); //todo error msg
@@ -332,10 +323,10 @@ void	Server::send_response(int i)
 		host_name = req.head.find("host")->second;
 	if (host_name != "")
 	{
-		host_name = host_name.find_last_of(':') == host_name.npos ? host_name : host_name.substr(0, host_name.find_last_of(':') - 1);
+		host_name = host_name.find_last_of(':') == host_name.npos ? host_name : host_name.substr(0, host_name.find_last_of(':'));
 		for (size_t j = 1; j < _configurations.size(); j++)
 		{
-			if (std::find(_configurations[i].names.begin(), _configurations[i].names.end(), host_name) != _configurations[i].names.end())
+			if (std::find(_configurations[j].names.begin(), _configurations[j].names.end(), host_name) != _configurations[j].names.end())
 			{
 				ptr = &_configurations[j];
 				break ;
@@ -379,4 +370,9 @@ Server::ServerException::ServerException(std::string function, std::string error
 const char *Server::ServerException::what(void) const throw()
 {
 	return (this->_error.c_str());
+}
+
+int Server::getPort()
+{
+	return (this->_port);
 }

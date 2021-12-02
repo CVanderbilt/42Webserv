@@ -57,6 +57,8 @@ public:
 	void			server_listen();
 
 	void			show();
+	void			addServer(server_config const& s);
+	int				getPort();
 
 	class ServerException : public std::exception
 	{

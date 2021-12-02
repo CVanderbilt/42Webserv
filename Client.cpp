@@ -213,7 +213,7 @@ std::string	Client::BuildGet()
 	std::string	ret;
 
 	_response_status = 200;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 	if (!s)
 	{
 		_response_status = 404;
@@ -264,7 +264,7 @@ std::string	Client::BuildGet()
 
 void	Client::BuildPost()
 {
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_response_status = 200;
 	if (!s)
@@ -296,7 +296,7 @@ void	Client::BuildPost()
 std::string	Client::BuildDelete()
 {
 	std::string	ret;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_req_file = s->write_path + _request.uri;
 
@@ -339,20 +339,9 @@ std::map<int, std::string>	Client::StatusMessages()
 		return (map);
 }
 
-void		Client::setServer(std::vector<server_location> *s, std::map<int, std::string> *epages)
-{
-	_s = s;
-	_error_pages = epages;
-}
-
-void		Client::setServer(std::vector<server_location> *s)
-{
-	_s = s;
-}
-
 void		Client::setServer(server_info *s)
 {
-	_s2 = s;
+	_s = s;
 }
 
 const Http_req&	Client::GetRequest()
