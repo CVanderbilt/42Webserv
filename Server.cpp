@@ -220,7 +220,7 @@ void	Server::server_listen()
 			std::cout << "i: " << i << ", fd: " << _pfds[i].fd << " not found on clients" << std::endl;
 			_pfds[i].fd = -1;
 		}
-		else if (_pfds[i].fd != _server_fd && _clients.count(_clients[_pfds[i].fd].hasTimedOut()))
+		else if (_pfds[i].fd != _server_fd && _clients[_pfds[i].fd].hasTimedOut())
 		{
 			std::cout << "fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
 			close_fd_del_client(i);
