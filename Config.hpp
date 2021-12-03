@@ -40,5 +40,5 @@ struct server_config
 };
 
 std::vector<server_config> check_config(std::string config_file);
-std::map<std::string, std::string>	cgi_exec_path;
+//std::map<std::string, std::string>	cgi_exec_path;
 #endif

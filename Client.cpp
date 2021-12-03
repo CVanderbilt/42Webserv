@@ -131,7 +131,7 @@ void	Client::BuildResponse()
 	else if (_request.method.compare("GET") == 0)
 		body = BuildGet();
 	else if (_request.method.compare("POST") == 0)
-		BuildPost();
+		body = BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
 		body = BuildDelete();
 	if (_response_status >= 400)
@@ -222,7 +222,10 @@ std::string	Client::BuildGet()
 	if (_is_CGI)
 	{
 		CGI cgi(_request, s);
-		cgi.executeCGI();
+		_response_cgi = cgi.executeCGI();
+		size_t pos = _response_cgi.find("\r\n\r\n");
+		if (pos != _response_cgi.npos)
+			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
 	}
 	else 
 	{
@@ -266,20 +269,24 @@ std::string	Client::BuildGet()
 	return (ret);
 }
 
-void	Client::BuildPost()
+std::string	Client::BuildPost()
 {
+	std::string ret = "";
 	const server_location *s = locationByUri(_request.uri, *this->_s);
 
 	_response_status = 200;
 	if (!s)
 	{
 		_response_status = 404;
-		return ;
+		return (ret);
 	}
 	if (_is_CGI)
 	{
 		CGI cgi(_request, s);
-		cgi.executeCGI();
+		_response_cgi = cgi.executeCGI();
+		size_t pos = _response_cgi.find("\r\n\r\n");
+		if (pos != _response_cgi.npos)
+			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
 	}
 	else
 	{
@@ -298,11 +305,12 @@ void	Client::BuildPost()
 					else
 					{
 						_response_status = 500;
-						return ;
+						return (ret);
 					}
 				}
 	}
 	std::cout << "========================================" << std::endl;
+	return (ret);
 }
 
 std::string	Client::BuildDelete()

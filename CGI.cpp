@@ -29,21 +29,21 @@ CGI::CGI(CGI const &copy) :
 	_env_vec(copy._env_vec)
 {}
 
-void	CGI::executeCGI()
+std::string	CGI::executeCGI()
 {
 	int		status, valwrite;
 	int		pipes[2];
 	pid_t	pid;
 	char	**args;
-	std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<PRUEBA DE CGI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+//	std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<PRUEBA DE CGI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
 
 	if (!(args = (char **)malloc(sizeof(char *) * 3)))
 		throw 500;
 	if ((_CGI_fd = open("./cgi.temp", O_RDWR | O_CREAT | O_TRUNC | O_NOFOLLOW | O_NONBLOCK, 0666)) < 0)
 		throw 500;
-	std::cout <<  "_request.body.c_str() = " << _request.body.c_str() << std::endl;
+//	std::cout <<  "_request.body.c_str() = " << _request.body.c_str() << std::endl;
 	valwrite = write(this->_CGI_fd, _request.body.c_str(), _request.body.length());
-	std::cout <<  "valwrite = " << valwrite << std::endl;
+//	std::cout <<  "valwrite = " << valwrite << std::endl;
 	close(_CGI_fd);
 	if (pipe(pipes))
 		throw 500;
@@ -62,14 +62,15 @@ void	CGI::executeCGI()
 		waitpid(pid, &status, 0);
 		parentProcess(pipes[SIDE_OUT]);
 	}
-	std::cout << "_response_cgi = " << _response_cgi << std::endl;
-std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<fin de prueba>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+//	std::cout << "_response_cgi = " << _response_cgi << std::endl;
+//std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<fin de prueba>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
 	free(args[0]);
 	free(args[1]);
 	free(args);
 	unlink("./cgi.temp");
 	close(pipes[SIDE_IN]);
 	close(pipes[SIDE_OUT]);
+	return (_response_cgi);
 }
 
 void CGI::childProcess(char **args, int &pipes_in)
@@ -78,11 +79,11 @@ void CGI::childProcess(char **args, int &pipes_in)
 	char **env = vectorToEnv(_env_vec);
 
 //std::cout << "<<<<<<<<<<<<<<<<<<<<<DENTRO DEL PROCESO HIJO>>>>>>>>>>>>>>>>>>>>>" << std::endl;
-	for (int i = 0; env[i]; i++)
-		std::cout << env[i] << std::endl;
+//	for (int i = 0; env[i]; i++)
+//		std::cout << env[i] << std::endl;
 	if (dup2(pipes_in, STDOUT) < 0)
 		std::cout << "Error en dup2" << std::endl;
-	std::cout << "_request.body.length() = " << _request.body.length() << std::endl;
+//	std::cout << "_request.body.length() = " << _request.body.length() << std::endl;
 	if (_request.body.length() > 0)
 	{
 		_CGI_fd = open("./cgi.temp", O_RDONLY, 0);

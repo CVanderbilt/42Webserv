@@ -40,6 +40,6 @@ class CGI
 		~CGI(){};
 		CGI(CGI const &copy);
 
-		void	executeCGI();
+		std::string	executeCGI();
 		
 };

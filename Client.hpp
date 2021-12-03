@@ -27,6 +27,7 @@ private:
 	Http_req					_request;
 	int							_response_status;
 	std::string					_response;
+	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
 	size_t						_max_body_size;
@@ -59,7 +60,7 @@ public:
 	int			ResponseStatus();
 	bool		MethodAllowed();
 	std::string	BuildGet();
-	void		BuildPost();
+	std::string	BuildPost();
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
 	void		ExecuteCGI();
