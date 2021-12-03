@@ -15,12 +15,14 @@ Server::Server(int port) :
 	_pfds(new pollfd[_fd_size])
 {}
 
-Server::Server(server_config const& s) :
+Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path) :
 	_fd_size(2),
 	_port(8080),
 	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size])
+	_pfds(new pollfd[_fd_size]),
+	_cgi_paths(cgi_exec_path)
 {
+	_cgi_paths->count(".py");
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
@@ -271,9 +273,9 @@ void	Server::send_response(int i)
 	size_t val_sent;
 
 	_clients[_pfds[i].fd].BuildResponse();
-	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
+//	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
-	std::cout << "sent succesfully" << std::endl;
+//	std::cout << "sent succesfully" << std::endl;
 	if ((val_sent < 0))
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
 		//si se da este caso habría que cerrar la conexión y a otra cosa

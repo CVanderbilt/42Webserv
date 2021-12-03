@@ -8,13 +8,15 @@ int main(int argc, char *argv[])
 {
 	std::vector<server_config> config;
 	std::string config_file = "default.conf";
+	std::map<std::string, std::string>	cgi_exec_path;
+
 	if (argc > 2)
 		std::cerr << "Wrong number of arguments" << std::endl;
 	try
 	{
 		if (argc == 2)
 			config_file = argv[1];
-		config = check_config(config_file);
+		config = check_config(config_file, cgi_exec_path);
 	}
 	catch(const std::exception& e)
 	{
@@ -52,7 +54,7 @@ int main(int argc, char *argv[])
 		std::vector<Server*>servers;
 		for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
 		{
-			servers.push_back(new Server(*it));
+			servers.push_back(new Server(*it, &cgi_exec_path));
 			servers[servers.size() - 1]->server_start();
 		}
 

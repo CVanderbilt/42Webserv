@@ -121,7 +121,7 @@ void server_config::parse_config(std::ifstream& file)
 /*
 *	This functions searchs parse a config file into a vector of server_config structs.
 */
-std::vector<server_config> check_config(std::string config_file)
+std::vector<server_config> check_config(std::string config_file, std::map<std::string, std::string>	&cgi_exec_path)
 {
 	std::ifstream file(config_file.c_str());
 	std::string str;
@@ -143,13 +143,9 @@ std::vector<server_config> check_config(std::string config_file)
 			ret.resize(ret.size() + 1);
 			ret[ret.size() - 1].parse_config(file);
 		}
-/*		else if (str[0] == '.')
-		{
+		else if (str[0] == '.')
 			cgi_exec_path[str.substr(0, str.find(' '))] = str.substr(str.find(' ') + 1, str.npos);
-			for (std::map<std::string,std::string>::const_iterator it = cgi_exec_path.begin(); it != cgi_exec_path.end(); ++it)
-				std::cout << it->first << " : " << it->second << std::endl;
-		}
-*/		else
+		else
 			throw ConfigException(str, "server or err_pages block expected");
 	}
 	return (ret);

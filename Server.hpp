@@ -37,6 +37,7 @@ private:
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
 	std::map<int, std::string>		_error_pages;
+	std::map<std::string,std::string>	const *_cgi_paths;
 
 	void			accept_connection();
 	void			read_message(int i);
@@ -49,7 +50,7 @@ public:
 
 	Server(void);
 	Server(int port);
-	Server(server_config const& s);
+	Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path);
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();

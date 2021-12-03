@@ -24,7 +24,6 @@ struct server_location
 	std::string							write_path;
 	std::string							server_name;
 	std::string							port;
-	std::map<std::string,std::string>	cgi_paths;
 	server_location();
 	server_location(const server_location& other);
 };

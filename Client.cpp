@@ -57,16 +57,16 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
-	std::cout << "parsing new chunck of size: " << bytes << std::endl;
+//	std::cout << "parsing new chunck of size: " << bytes << std::endl;
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
 	{
 		_status = 1;
 		_is_CGI = isCGI();
-		std::cout << "isCGI = " << _is_CGI << std::endl;
+//		std::cout << "isCGI = " << _is_CGI << std::endl;
 	}
-	std::cout << _request << std::endl;
+//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -226,6 +226,7 @@ std::string	Client::BuildGet()
 		size_t pos = _response_cgi.find("\r\n\r\n");
 		if (pos != _response_cgi.npos)
 			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
+		return (ret);
 	}
 	else 
 	{
@@ -394,13 +395,13 @@ bool Client::isCGI()
 		str = _request.uri;
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
-std::cout << "str = " << str << std::endl;
+//std::cout << "str = " << str << std::endl;
 	const server_location *s = locationByUri(_request.uri, *this->_s);
 	if(!s)
 		return false;
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
 	{
-std::cout << "cgis = " << *it << std::endl;
+//std::cout << "cgis = " << *it << std::endl;
 		if (str == *it)
 			return true;
 	}

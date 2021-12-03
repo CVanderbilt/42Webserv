@@ -181,9 +181,9 @@ void Http_req::parse_method(void)
 		file_uri = uri.substr(pos_slash + 1, pos_qm - pos_slash - 1);
 	if (pos_qm != uri.npos)
 		query_string = uri.substr(pos_qm + 1, uri.npos - pos_qm - 1);
-	std::cout << "URI = " << uri << std::endl;	
-	std::cout << "URI_FILE = " << file_uri << std::endl;	
-	std::cout << "QUERY STRING = " << query_string << std::endl;	
+//	std::cout << "URI = " << uri << std::endl;	
+//	std::cout << "URI_FILE = " << file_uri << std::endl;	
+//	std::cout << "QUERY STRING = " << query_string << std::endl;	
 	protocol = line.substr(sep + 1, line.npos);
 	if (protocol != "HTTP/1.1")
 		status = PARSE_ERROR;
