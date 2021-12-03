@@ -226,9 +226,8 @@ void Http_req::parse_head(void)
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
-	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 18, "multipart/form-data") == 0)
+	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 19, "multipart/form-data") == 0)
 	{
-		std::cout << "line.compare(0, 18, multipart/form-data) = " << line.compare(0, 18, "multipart/form-data") << std::endl;
 		head[key] = "multipart/form-data";
 		eol = line.find("=");
 		line = line.substr(eol + 1, line.npos);
