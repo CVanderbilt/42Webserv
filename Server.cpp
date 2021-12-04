@@ -70,6 +70,8 @@ Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_e
 				_server_location[idx].port = lit->second.c_str();
 			else if (lit->first == "server_name")
 				_server_location[idx].server_name = splitIntoVector(lit->second, " ")[0];
+			else if (lit->first == "redirection")
+				_server_location[idx].redirect = lit->second;
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 

@@ -159,6 +159,7 @@ void	Client::BuildResponse()
 	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
+	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
@@ -167,9 +168,18 @@ std::string	Client::BuildHeader(size_t size)
 {
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
-	stream << "Content-Type: text/html" << "\r\n";
-	stream << "Content-Length: " << size << "\r\n";
-	stream << "\r\n";
+	if (_response_status == 301)
+	{
+		stream << "Location: " <<  _redirect << "\r\n";
+		stream << "Content-Length: " << 0 << "\r\n";
+		stream << "\r\n";
+	}
+	else
+	{
+		stream << "Content-Type: text/html" << "\r\n";
+		stream << "Content-Length: " << size << "\r\n";
+		stream << "\r\n";
+	}
 	return (stream.str());
 }
 
@@ -219,6 +229,7 @@ std::string	Client::BuildGet()
 		_response_status = 404;
 		return ("");
 	}
+	std::cout << "s->redirect = " << s->redirect << std::endl;
 	if (_is_CGI)
 	{
 		CGI cgi(_request, s);
@@ -227,6 +238,12 @@ std::string	Client::BuildGet()
 		if (pos != _response_cgi.npos)
 			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
 		return (ret);
+	}
+	else if (s->redirect != "")
+	{
+		_response_status = 301;
+		_redirect = s->redirect;
+		return ("");
 	}
 	else 
 	{

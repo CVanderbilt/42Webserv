@@ -35,6 +35,7 @@ private:
 	bool						_is_CGI;
 	bool						_is_autoindex;
 	std::string					_req_file;
+	std::string					_redirect;
 	const std::vector<server_location>	*_s;
 	std::map<int, std::string>	*_error_pages;
 	
