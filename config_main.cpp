@@ -55,19 +55,21 @@ int main(int argc, char *argv[])
 		std::map<int, Server*> port_server;
 		for (std::vector<server_config>::const_iterator it = config.begin(); it != config.end(); it++)
 		{
-			//(servers.push_back(new Server(*it, &cgi_exec_path));
-			//servers[servers.size() - 1]->server_start();
-			int port = std::atoi(it->opts.find("port")->second.c_str());
+			std::cout << "adfds" << std::endl;
+			servers.push_back(new Server(*it, &cgi_exec_path));
+			servers[servers.size() - 1]->server_start();
+
+			/*int port = std::atoi(it->opts.find("port")->second.c_str());
 			if (port_server.count(port) > 0)
 				port_server[port]->addServer(*it);
 			else
 			{
-				Server *ptr_server = new Server(*it);
+				Server *ptr_server = new Server(*it, &cgi_exec_path);
 				servers.push_back(ptr_server);
 				ptr_server->server_start();
 				ptr_server->show();
 				port_server[ptr_server->getPort()] = ptr_server;
-			}
+			}*/
 		}
 
 		size_t idx = 0;

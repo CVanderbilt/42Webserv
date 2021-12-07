@@ -34,6 +34,7 @@ struct	server_info
 		std::vector<std::string>		names;
 		std::map<int, std::string>		error_pages;
 		std::vector<server_location>	locations;
+		int								port;
 		//client size, no se si algo más, sobre la marcha
 		server_info();
 		server_info(const server_info& other);

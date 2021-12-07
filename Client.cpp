@@ -10,7 +10,6 @@ Client::Client() :
 	_is_CGI(false),
 	_time_check(ft_now())
 {
-	_error_pages = NULL;
 }
 
 Client::Client(int fd) : 
@@ -23,7 +22,6 @@ Client::Client(int fd) :
 	_is_CGI(false),
 	_time_check(ft_now())
 {
-	_error_pages = NULL;
 }
 
 Client::Client(Client const &copy) :
@@ -37,7 +35,6 @@ Client::Client(Client const &copy) :
 	_is_CGI(copy._is_CGI),
 	_time_check(copy._time_check)
 {
-	_error_pages = NULL;
 } 
 
 int		Client::getFd() const
@@ -143,9 +140,9 @@ void	Client::BuildResponse()
 		std::cout << "attempt to respond with error page" << std::endl;
 		try
 		{
-			if (_error_pages->count(_response_status) > 0)
+			if (_s->error_pages.count(_response_status) > 0)
 			{
-				body = ExtractFile(_error_pages->find(_response_status)->second);
+				body = ExtractFile(_s->error_pages.find(_response_status)->second);
 			}
 			else
 			{
@@ -410,7 +407,7 @@ bool Client::isCGI()
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
 //std::cout << "str = " << str << std::endl;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 	if(!s)
 		return false;
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
