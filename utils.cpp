@@ -105,5 +105,7 @@ server_info::server_info(const server_info& other):
 	names(other.names),
 	error_pages(other.error_pages),
 	locations(other.locations),
-	port(other.port)
+	port(other.port),
+	cgi_paths(other.cgi_paths),
+	root(other.root)
 {}

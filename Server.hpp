@@ -35,7 +35,7 @@ private:
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
-	std::map<std::string,std::string>	const *_cgi_paths;
+	//std::map<std::string,std::string>	const *_cgi_paths;
 	//std::vector<server_info>		_configurations;
 	server_info						_configuration;
 

@@ -233,12 +233,19 @@ std::string	Client::BuildGet()
 	std::cout << "s->redirect = " << s->redirect << std::endl;
 	if (_is_CGI)
 	{
-		CGI cgi(_request, s);
+		try
+	{
+		CGI cgi(_request, s, _s);
 		_response_cgi = cgi.executeCGI();
 		size_t pos = _response_cgi.find("\r\n\r\n");
 		if (pos != _response_cgi.npos)
 			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
 		return (ret);
+	}
+	catch (...)
+	{
+		std::cout << "kk" << std::endl;
+	}
 	}
 	else if (s->redirect != "")
 	{
@@ -301,7 +308,7 @@ std::string	Client::BuildPost()
 	}
 	if (_is_CGI)
 	{
-		CGI cgi(_request, s);
+		CGI cgi(_request, s, _s);
 		_response_cgi = cgi.executeCGI();
 		size_t pos = _response_cgi.find("\r\n\r\n");
 		if (pos != _response_cgi.npos)

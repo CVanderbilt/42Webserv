@@ -31,10 +31,12 @@ struct server_location
 
 struct	server_info
 {
-		std::vector<std::string>		names;
-		std::map<int, std::string>		error_pages;
-		std::vector<server_location>	locations;
-		int								port;
+		std::vector<std::string>			names;
+		std::map<int, std::string>			error_pages;
+		std::vector<server_location>		locations;
+		std::string							port;
+		std::map<std::string,std::string>	const *cgi_paths;
+		std::string							root;
 		//client size, no se si algo más, sobre la marcha
 		server_info();
 		server_info(const server_info& other);

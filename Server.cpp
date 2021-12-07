@@ -18,11 +18,11 @@ Server::Server(int port) :
 Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path) :
 	_fd_size(2),
 	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size]),
-	_cgi_paths(cgi_exec_path)
+	_pfds(new pollfd[_fd_size])
 {
-	_cgi_paths->count(".py");
+	//_cgi_paths->count(".py");
 	addServer(s);
+	_configuration.cgi_paths = cgi_exec_path;
 }
 
 void Server::addServer(server_config const& s)
@@ -31,7 +31,8 @@ void Server::addServer(server_config const& s)
 	{
 		if (it->first == "port" && isPort(it->second))
 			//_port = std::atoi(it->second.c_str());
-			_configuration.port = std::atoi(it->second.c_str());
+			//_configuration.port = std::atoi(it->second.c_str());
+			_configuration.port = it->second;
 		else if (it->first == "server_name")
 			_configuration.names = splitIntoVector(it->second, " ");
 		else if (it->first.length() == 3 && (it->first[0] == '4' || it->first[0] == '5') && 
@@ -90,7 +91,7 @@ void	Server::server_start()
 		throw ServerException("In fcntl", "failed for some reason");
 	}
 	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(_configuration.port);
+	_addr.sin_port = htons(std::atoi(_configuration.port.c_str()));
 	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 	int optval = 1;
@@ -327,9 +328,4 @@ Server::ServerException::ServerException(std::string function, std::string error
 const char *Server::ServerException::what(void) const throw()
 {
 	return (this->_error.c_str());
-}
-
-int Server::getPort()
-{
-	return (this->_configuration.port);
 }
