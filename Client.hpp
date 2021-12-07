@@ -19,6 +19,8 @@
 #include "utils.hpp"
 #include "CGI.hpp"
 
+#define TIMEOUT 3000 // in miliseconds
+
 class Client
 {
 private:
@@ -36,8 +38,9 @@ private:
 	bool						_is_autoindex;
 	std::string					_req_file;
 	std::string					_redirect;
-	const std::vector<server_location>	*_s;
+	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
+	server_info *_s;
 	
 public:
 
@@ -46,8 +49,7 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
-	void		setServer(std::vector<server_location> *s, std::map<int, std::string> *epages);
-	void		setServer(std::vector<server_location> *s);
+	void		setServer(server_info *s);
 	int			getFd() const;
 	void		setFd(int const &fd);
 	int 		getStatus();
@@ -71,5 +73,5 @@ public:
 	const Http_req&	GetRequest();
 	void 		reset();
 	bool		isCGI();
-
+	bool hasTimedOut();
 };

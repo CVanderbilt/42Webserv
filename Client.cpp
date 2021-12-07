@@ -7,7 +7,8 @@ Client::Client() :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false)
+	_is_CGI(false),
+	_time_check(ft_now())
 {
 	_error_pages = NULL;
 }
@@ -19,7 +20,8 @@ Client::Client(int fd) :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false)
+	_is_CGI(false),
+	_time_check(ft_now())
 {
 	_error_pages = NULL;
 }
@@ -32,7 +34,8 @@ Client::Client(Client const &copy) :
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
 	_stat_msg(copy._stat_msg),
-	_is_CGI(copy._is_CGI)
+	_is_CGI(copy._is_CGI),
+	_time_check(copy._time_check)
 {
 	_error_pages = NULL;
 } 
@@ -58,6 +61,7 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 	Http_req::parsing_status temp;
 
 //	std::cout << "parsing new chunck of size: " << bytes << std::endl;
+	_time_check = ft_now();
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
@@ -223,7 +227,7 @@ std::string	Client::BuildGet()
 	std::string	ret;
 
 	_response_status = 200;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 	if (!s)
 	{
 		_response_status = 404;
@@ -290,7 +294,7 @@ std::string	Client::BuildGet()
 std::string	Client::BuildPost()
 {
 	std::string ret = "";
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_response_status = 200;
 	if (!s)
@@ -334,7 +338,7 @@ std::string	Client::BuildPost()
 std::string	Client::BuildDelete()
 {
 	std::string	ret;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
+	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_req_file = s->write_path + _request.uri;
 
@@ -377,13 +381,7 @@ std::map<int, std::string>	Client::StatusMessages()
 		return (map);
 }
 
-void		Client::setServer(std::vector<server_location> *s, std::map<int, std::string> *epages)
-{
-	_s = s;
-	_error_pages = epages;
-}
-
-void		Client::setServer(std::vector<server_location> *s)
+void		Client::setServer(server_info *s)
 {
 	_s = s;
 }
@@ -399,7 +397,6 @@ void Client::reset()
 	_response_sent = 0;
 	_response_left = 0;
 }
-
 
 bool Client::isCGI()
 {
@@ -423,4 +420,10 @@ bool Client::isCGI()
 			return true;
 	}
 	return false;
+}
+bool Client::hasTimedOut()
+{
+	if (ft_now() - TIMEOUT >= _time_check)
+		return (true);
+	return (false);
 }
