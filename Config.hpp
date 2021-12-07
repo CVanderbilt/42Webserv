@@ -30,8 +30,8 @@ struct location_config
 
 struct server_config
 {
-	std::map<std::string, std::string> opts;
-	std::vector<location_config> loc;
+	std::map<std::string, std::string>	opts;
+	std::vector<location_config>		loc;
 
 	void parse_config(std::ifstream& file);
 
@@ -39,6 +39,5 @@ struct server_config
 	server_config(const server_config& other);
 };
 
-std::vector<server_config> check_config(std::string config_file);
-
+std::vector<server_config> check_config(std::string config_file, std::map<std::string, std::string>	&cgi_exec_path);
 #endif

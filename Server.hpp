@@ -21,7 +21,6 @@
 #define PORT 8080
 #define BUFFER_SIZE 4096
 #define MAX_CONNEC 20
-
 class Server
 {
 private:
@@ -37,7 +36,7 @@ private:
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
-	//std::map<int, std::string>		_error_pages;			//!!!
+	std::map<std::string,std::string>	const *_cgi_paths;
 	std::vector<server_info>		_configurations;
 
 	void			accept_connection();
@@ -51,7 +50,7 @@ public:
 
 	Server(void);
 	Server(int port);
-	Server(server_config const& s);
+	Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path);
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();

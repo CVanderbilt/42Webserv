@@ -2,6 +2,7 @@
 # define UTILS_HPP
 
 # include <vector>
+# include <map>
 # include <string>
 # include <sys/stat.h>
 # include <fstream>
@@ -14,13 +15,16 @@
 */
 struct server_location 
 {
-	std::string					root; //is the path to the files that are mapped to the uri of the browser
-	std::string					path; //is the uri in the browser
-	bool						autoindex;
-	std::vector<std::string>	cgi;
-	std::vector<std::string>	index;
-	bool						write_enabled;
-	std::string					write_path;
+	std::string							root; //is the path to the files that are mapped to the uri of the browser
+	std::string							path; //is the uri in the browser
+	bool								autoindex;
+	std::vector<std::string>			cgi;
+	std::vector<std::string>			index;
+	bool								write_enabled;
+	std::string							write_path;
+	std::string							server_name;
+	std::string							port;
+	std::string							redirect;
 	server_location();
 	server_location(const server_location& other);
 };

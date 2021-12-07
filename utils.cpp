@@ -78,7 +78,7 @@ const server_location *locationByUri(const std::string& uri, const std::vector<s
 	if (pos == uri.npos)
 		return (NULL);
 	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
-	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
+//	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
 	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
 		if (it->path == uri_directory)
 			return (&(*it));

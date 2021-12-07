@@ -1,8 +1,5 @@
 #include "Client.hpp"
 
-#include <sys/types.h>
-#include <dirent.h>
-
 Client::Client() : 
 	_fd(-1),
 	_status(-1),
@@ -10,6 +7,7 @@ Client::Client() :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages()),
+	_is_CGI(false),
 	_time_check(ft_now())
 {
 	_error_pages = NULL;
@@ -22,6 +20,7 @@ Client::Client(int fd) :
 	_response_left(0),
 	_max_body_size(1000000),
 	_stat_msg(StatusMessages()),
+	_is_CGI(false),
 	_time_check(ft_now())
 {
 	_error_pages = NULL;
@@ -35,6 +34,7 @@ Client::Client(Client const &copy) :
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
 	_stat_msg(copy._stat_msg),
+	_is_CGI(copy._is_CGI),
 	_time_check(copy._time_check)
 {
 	_error_pages = NULL;
@@ -60,13 +60,17 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
+//	std::cout << "parsing new chunck of size: " << bytes << std::endl;
 	_time_check = ft_now();
-	std::cout << "parsing new chunck of size: " << bytes << std::endl;
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
+	{
 		_status = 1;
-	std::cout << _request << std::endl;
+		_is_CGI = isCGI();
+//		std::cout << "isCGI = " << _is_CGI << std::endl;
+	}
+//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -131,7 +135,7 @@ void	Client::BuildResponse()
 	else if (_request.method.compare("GET") == 0)
 		body = BuildGet();
 	else if (_request.method.compare("POST") == 0)
-		BuildPost();
+		body = BuildPost();
 	else if (_request.method.compare("DELETE") == 0)
 		body = BuildDelete();
 	if (_response_status >= 400)
@@ -159,6 +163,7 @@ void	Client::BuildResponse()
 	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
+	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
@@ -167,9 +172,18 @@ std::string	Client::BuildHeader(size_t size)
 {
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
-	stream << "Content-Type: text/html" << "\r\n";
-	stream << "Content-Length: " << size << "\r\n";
-	stream << "\r\n";
+	if (_response_status == 301)
+	{
+		stream << "Location: " <<  _redirect << "\r\n";
+		stream << "Content-Length: " << 0 << "\r\n";
+		stream << "\r\n";
+	}
+	else
+	{
+		stream << "Content-Type: text/html" << "\r\n";
+		stream << "Content-Length: " << size << "\r\n";
+		stream << "\r\n";
+	}
 	return (stream.str());
 }
 
@@ -219,78 +233,106 @@ std::string	Client::BuildGet()
 		_response_status = 404;
 		return ("");
 	}
-
-
-	std::string file_in_uri = _request.uri.substr(_request.uri.find_last_of('/') + 1, _request.uri.npos);
-	std::cout << "file in uri >" << file_in_uri << "<" << std::endl;
-	if (file_in_uri == "") //index
+	std::cout << "s->redirect = " << s->redirect << std::endl;
+	if (_is_CGI)
 	{
-		for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+		CGI cgi(_request, s);
+		_response_cgi = cgi.executeCGI();
+		size_t pos = _response_cgi.find("\r\n\r\n");
+		if (pos != _response_cgi.npos)
+			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
+		return (ret);
+	}
+	else if (s->redirect != "")
+	{
+		_response_status = 301;
+		_redirect = s->redirect;
+		return ("");
+	}
+	else 
+	{
+		if (_request.file_uri == "") //index
 		{
-			std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
+			for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+			{
+				std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
+				try
+				{
+					return (ExtractFile(s->root + *it));
+				}
+				catch(const std::exception& e)
+				{
+					std::cerr << s->root + *it << " not found" << std::endl;
+				}
+			}
+			std::cout << "Not index found" << std::endl;
+			if (s->autoindex)
+			{
+				std::cout << "Sending autoindex" << std::endl;
+				return (GetAutoIndex(s->root, s->path));
+			}
+			_response_status = 404;
+			return ("");
+		}
+		else
+		{
 			try
 			{
-				return (ExtractFile(s->root + *it));
+				return (ExtractFile(s->root + _request.file_uri));
 			}
 			catch(const std::exception& e)
 			{
-				std::cerr << s->root + *it << " not found" << std::endl;
+				_response_status = 404;
+				return ("");
 			}
-		}
-		std::cout << "Not index found" << std::endl;
-		if (s->autoindex)
-		{
-			std::cout << "Sending autoindex" << std::endl;
-			return (GetAutoIndex(s->root, s->path));
-		}
-		_response_status = 404;
-		return ("");
-	}
-	else
-	{
-		try
-		{
-			return (ExtractFile(s->root + file_in_uri));
-		}
-		catch(const std::exception& e)
-		{
-			_response_status = 404;
-			return ("");
 		}
 	}
 	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
 	return (ret);
 }
 
-void	Client::BuildPost()
+std::string	Client::BuildPost()
 {
+	std::string ret = "";
 	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_response_status = 200;
 	if (!s)
 	{
 		_response_status = 404;
-		return ;
+		return (ret);
 	}
-	if (s->write_enabled)
-		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-			if (_request.mult_form_data[i].filename != "")
-			{
-				std::ofstream file;
-				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
-				file.open(_req_file.c_str());
-				if (file.is_open() && file.good())
+	if (_is_CGI)
+	{
+		CGI cgi(_request, s);
+		_response_cgi = cgi.executeCGI();
+		size_t pos = _response_cgi.find("\r\n\r\n");
+		if (pos != _response_cgi.npos)
+			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
+	}
+	else
+	{
+		if (s->write_enabled)
+			for (size_t i = 0; i < _request.mult_form_data.size(); i++)
+				if (_request.mult_form_data[i].filename != "")
 				{
-					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
-					file.close();
+					std::ofstream file;
+					_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+					file.open(_req_file.c_str());
+					if (file.is_open() && file.good())
+					{
+						file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+						file.close();
+					}
+					else
+					{
+						_response_status = 500;
+						return (ret);
+					}
 				}
-				else
-				{
-					_response_status = 500;
-					return ;
-				}
-			}
+	}
 	std::cout << "========================================" << std::endl;
+	return (ret);
 }
 
 std::string	Client::BuildDelete()
@@ -356,6 +398,29 @@ void Client::reset()
 	_response_left = 0;
 }
 
+bool Client::isCGI()
+{
+	std::string	str;
+	size_t		i;
+	
+	if ((i = _request.uri.find("?")) != _request.uri.npos)
+		str = _request.uri.substr(0, i);
+	else
+		str = _request.uri;
+	if ((i = str.find_last_of(".")) != str.npos)
+		str = str.substr(i, str.length() - i);
+//std::cout << "str = " << str << std::endl;
+	const server_location *s = locationByUri(_request.uri, *this->_s);
+	if(!s)
+		return false;
+	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
+	{
+//std::cout << "cgis = " << *it << std::endl;
+		if (str == *it)
+			return true;
+	}
+	return false;
+}
 bool Client::hasTimedOut()
 {
 	if (ft_now() - TIMEOUT >= _time_check)

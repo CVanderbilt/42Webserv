@@ -11,9 +11,13 @@
 #include <fcntl.h>
 #include <cstring>
 #include <vector>
-#include <sstream> 
+#include <sstream>
+#include <cerrno>
+#include <sys/types.h>
+#include <dirent.h>
 #include "Http_req.hpp"
 #include "utils.hpp"
+#include "CGI.hpp"
 
 #define TIMEOUT 3000 // in miliseconds
 
@@ -25,6 +29,7 @@ private:
 	Http_req					_request;
 	int							_response_status;
 	std::string					_response;
+	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
 	size_t						_max_body_size;
@@ -32,6 +37,7 @@ private:
 	bool						_is_CGI;
 	bool						_is_autoindex;
 	std::string					_req_file;
+	std::string					_redirect;
 	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
 	server_info *_s;
@@ -57,7 +63,7 @@ public:
 	int			ResponseStatus();
 	bool		MethodAllowed();
 	std::string	BuildGet();
-	void		BuildPost();
+	std::string	BuildPost();
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
 	void		ExecuteCGI();
@@ -65,6 +71,7 @@ public:
 	std::string	BuildHeader(size_t size = 0);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
-	void reset();
+	void 		reset();
+	bool		isCGI();
 	bool hasTimedOut();
 };

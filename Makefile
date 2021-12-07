@@ -9,6 +9,7 @@ SRCS =	config_main.cpp\
 		Client.cpp\
 		Http_req.cpp\
 		Config.cpp\
+		CGI.cpp\
 		utils.cpp
 
 NAME = webserv

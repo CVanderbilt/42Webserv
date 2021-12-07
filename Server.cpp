@@ -15,12 +15,14 @@ Server::Server(int port) :
 	_pfds(new pollfd[_fd_size])
 {}
 
-Server::Server(server_config const& s) :
+Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path) :
 	_fd_size(2),
 	_port(8080),
 	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size])
+	_pfds(new pollfd[_fd_size]),
+	_cgi_paths(cgi_exec_path)
 {
+	_cgi_paths->count(".py");
 	addServer(s);
 }
 
@@ -71,6 +73,12 @@ void Server::addServer(server_config const& s)
 				ret.locations[idx].write_enabled = true;
 				ret.locations[idx].write_path = lit->second;
 			}
+			else if (lit->first == "port" && isPort(lit->second))
+				_server_location[idx].port = lit->second.c_str();
+			else if (lit->first == "server_name")
+				_server_location[idx].server_name = splitIntoVector(lit->second, " ")[0];
+			else if (lit->first == "redirection")
+				_server_location[idx].redirect = lit->second;
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 		}
@@ -121,11 +129,13 @@ void	Server::server_start()
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_REUSEADDR");
 	}
+#ifndef __linux__
 	if ((setsockopt(_server_fd, SOL_SOCKET, SO_NOSIGPIPE, &optval, sizeof(int))) == -1)
 	{
 		close(_server_fd);
 		throw ServerException("In setsockopt", "failed for some reason with option SO_NOSIGPIPE");
 	}
+#endif
 	if (bind(_server_fd, (struct sockaddr *)&_addr, sizeof(_addr)) < 0)
 	{
 		close (_server_fd);
@@ -338,9 +348,9 @@ void	Server::send_response(int i)
 	//de momento set server
 	_clients[_pfds[i].fd].setServer(ptr);
 	_clients[_pfds[i].fd].BuildResponse();
-	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
+//	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
-	std::cout << "sent succesfully" << std::endl;
+//	std::cout << "sent succesfully" << std::endl;
 	if ((val_sent < 0))
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
 		//si se da este caso habría que cerrar la conexión y a otra cosa
