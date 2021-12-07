@@ -31,13 +31,14 @@ private:
 	size_t							_fd_size;
 	int								_port;
 //	int								_max_client_size;
-	std::vector<std::string>		_server_name;
-	std::vector<server_location>	_server_location;
+	//std::vector<std::string>		_server_name;			//!!!
+	//std::vector<server_location>	_server_location;		//!!!
 	sockaddr_in						_addr;
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
-	std::map<int, std::string>		_error_pages;
+	//std::map<int, std::string>		_error_pages;			//!!!
+	std::vector<server_info>		_configurations;
 
 	void			accept_connection();
 	void			read_message(int i);
@@ -54,6 +55,10 @@ public:
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();
+
+	void			show();
+	void			addServer(server_config const& s);
+	int				getPort();
 
 	class ServerException : public std::exception
 	{

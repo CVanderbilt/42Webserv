@@ -1,5 +1,14 @@
 #include "utils.hpp"
 #include <iostream>
+#include <sys/time.h>
+
+uint64_t ft_now(void)
+{
+	static struct timeval	tv;
+
+	gettimeofday(&tv, NULL);
+	return ((tv.tv_sec * (uint64_t)1000) + (tv.tv_usec / 1000));
+}
 
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {
@@ -87,4 +96,13 @@ server_location::server_location(const server_location& other):
 	index(other.index),
 	write_enabled(other.write_enabled),
 	write_path(other.write_path)
+{}
+
+server_info::server_info()
+{}
+
+server_info::server_info(const server_info& other):
+	names(other.names),
+	error_pages(other.error_pages),
+	locations(other.locations)
 {}
