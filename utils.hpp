@@ -9,6 +9,7 @@
 # include <sstream>
 # include "Config.hpp"
 # include <cstdlib>
+#include <stdint.h>
 
 /*
 *	Will have to move to its own file.

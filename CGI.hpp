@@ -21,7 +21,7 @@ class CGI
 {
 	private:
 		const server_location *_serv_loc;
-		Http_req			_request;
+		Http_req			*_request;
 		std::string			_path_cgi;
 		std::string			_name_cgi;
 		std::string			_response_cgi;
@@ -37,7 +37,7 @@ class CGI
 
 	public:
 		CGI();
-		CGI(Http_req request, const server_location *s, const server_info *info);
+		CGI(Http_req *request, const server_location *s, const server_info *info);
 		~CGI(){};
 		CGI(CGI const &copy);
 

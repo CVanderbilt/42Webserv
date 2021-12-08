@@ -20,19 +20,20 @@
 #include "CGI.hpp"
 
 #define TIMEOUT 3000 // in miliseconds
+#define MAX_BODY_SIZE 50000000
 
 class Client
 {
 private:
 	int							_fd;
 	int							_status;
-	Http_req					_request;
 	int							_response_status;
 	std::string					_response;
 	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
 	size_t						_max_body_size;
+	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
 	bool						_is_CGI;
 	bool						_is_autoindex;

@@ -1,9 +1,0 @@
-HTTP/1.1 200 OK
-ETag: "10000000565a5-2c-3e94b66c2e680"
-Accept-Ranges: bytes
-Content-Length: 44
-Connection: Keep-Alive
-Keep-Alive: timeout=15, max=100
-Content-Type: text/html
-
-<html><body><h1>It works!</h1></body></html>
