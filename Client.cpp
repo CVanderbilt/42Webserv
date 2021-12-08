@@ -252,7 +252,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 	}
 	catch(int err)
 	{
-		_status = err >= 400 ? err : 500;
+		_response_status = err >= 400 ? err : 500;
 		return ("");
 	}
 	
