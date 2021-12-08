@@ -88,13 +88,19 @@ void CGI::childProcess(char **args, int &pipes_in)
 //	for (int i = 0; env[i]; i++)
 //		std::cout << env[i] << std::endl;
 	if (dup2(pipes_in, STDOUT) < 0)
-		std::cout << "Error en dup2" << std::endl;
+	{
+		std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+		exit(1);
+	}
 //	std::cout << "_request.body.length() = " << _request.body.length() << std::endl;
 	if (_request.body.length() > 0)
 	{
 		_CGI_fd = open("./cgi.temp", O_RDONLY, 0);
 		if (dup2(_CGI_fd, STDIN))
-			std::cout << "Error en dup2" << std::endl;
+		{
+			std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+			exit(1);
+		}
 	}
 	else
 		close(STDIN);
@@ -102,7 +108,8 @@ void CGI::childProcess(char **args, int &pipes_in)
 		close(_CGI_fd);
 //	std::cout << "Antes del execve" << std::endl;
 	if ((ret = execve(args[0], args, env)) < 0)
-		std::cout << "Error en execve" << std::endl;
+		ret = 1;
+	std::cout << "Status: 500 Internal Server Error\r\n\r\n";
 	while (env[i])
 		free(env[i++]);
 	free(env);

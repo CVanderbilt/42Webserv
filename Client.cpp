@@ -219,6 +219,42 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 	return (ret);
 }
 
+std::string Client::ExecuteCGI(const server_location *s)
+{
+	try
+	{
+		std::string ret;
+		CGI cgi(_request, s, _s);
+		ret = cgi.executeCGI();
+		size_t pos = ret.find("\r\n\r\n");
+		std::string headers = ret.substr(0, pos);
+		pos = headers.find("Status");
+		if (pos == headers.npos)
+			pos = headers.find("status");
+		if (pos != headers.npos)
+		{
+			headers = headers.substr(pos + 1);
+			pos = headers.find(':');
+			if (pos == headers.npos)
+				_response_status = 500;
+			else
+			{
+				headers = headers.substr(pos + 1, headers.npos);
+				pos = headers.find_first_not_of(' ');
+				headers = headers.substr(pos);
+				_response_status = std::atoi(headers.c_str());
+			}
+		}
+		return (ret);
+	}
+	catch(int err)
+	{
+		_status = err >= 400 ? err : 500;
+		return ("");
+	}
+	
+}
+
 std::string	Client::BuildGet()
 {
 	std::string	ret;
@@ -233,19 +269,7 @@ std::string	Client::BuildGet()
 	std::cout << "s->redirect = " << s->redirect << std::endl;
 	if (_is_CGI)
 	{
-		try
-	{
-		CGI cgi(_request, s, _s);
-		_response_cgi = cgi.executeCGI();
-		size_t pos = _response_cgi.find("\r\n\r\n");
-		if (pos != _response_cgi.npos)
-			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
-		return (ret);
-	}
-	catch (...)
-	{
-		std::cout << "kk" << std::endl;
-	}
+		return (ExecuteCGI(s));
 	}
 	else if (s->redirect != "")
 	{
@@ -308,11 +332,7 @@ std::string	Client::BuildPost()
 	}
 	if (_is_CGI)
 	{
-		CGI cgi(_request, s, _s);
-		_response_cgi = cgi.executeCGI();
-		size_t pos = _response_cgi.find("\r\n\r\n");
-		if (pos != _response_cgi.npos)
-			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
+		return (ExecuteCGI(s));
 	}
 	else
 	{
@@ -400,6 +420,7 @@ void Client::reset()
 	_request.initialize(this->_max_body_size);
 	_response_sent = 0;
 	_response_left = 0;
+	_status = -1;
 }
 
 bool Client::isCGI()

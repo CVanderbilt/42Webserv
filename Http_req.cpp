@@ -179,6 +179,8 @@ void Http_req::parse_method(void)
 	size_t pos_qm = uri.find('?');
 	if (pos_qm > pos_slash)
 		file_uri = uri.substr(pos_slash + 1, pos_qm - pos_slash - 1);
+	else if (pos_slash != uri.npos)
+		file_uri = uri.substr(pos_slash + 1, uri.npos);
 	if (pos_qm != uri.npos)
 		query_string = uri.substr(pos_qm + 1, uri.npos - pos_qm - 1);
 //	std::cout << "URI = " << uri << std::endl;	
