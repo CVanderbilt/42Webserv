@@ -59,7 +59,7 @@ class Http_req
 		std::string							body;
 		size_t								content_length;
 		std::vector<Mult_Form_Data>			mult_form_data;
-		Http_req(size_t max_size_body = 1000000);
+		Http_req(size_t max_size_body);
 		Http_req(Http_req const &copy);
 
 		parsing_status parse_chunk(char* chunk, size_t bytes);

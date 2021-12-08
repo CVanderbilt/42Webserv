@@ -5,7 +5,8 @@ Client::Client() :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(1000000),
+	_max_body_size(MAX_BODY_SIZE),
+	_request(_max_body_size),
 	_stat_msg(StatusMessages()),
 	_is_CGI(false),
 	_time_check(ft_now())
@@ -17,7 +18,8 @@ Client::Client(int fd) :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(1000000),
+	_max_body_size(MAX_BODY_SIZE),
+	_request(_max_body_size),
 	_stat_msg(StatusMessages()),
 	_is_CGI(false),
 	_time_check(ft_now())
@@ -31,6 +33,7 @@ Client::Client(Client const &copy) :
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_max_body_size(copy._max_body_size),
+	_request(copy._request),
 	_stat_msg(copy._stat_msg),
 	_is_CGI(copy._is_CGI),
 	_time_check(copy._time_check)
@@ -160,7 +163,7 @@ void	Client::BuildResponse()
 	stream << BuildHeader(body.length());
 	stream << body;
 	_response = stream.str();
-	std::cout << "_response = " << _response << std::endl;
+//	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
@@ -224,7 +227,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 	try
 	{
 		std::string ret;
-		CGI cgi(_request, s, _s);
+		CGI cgi(&_request, s, _s);
 		ret = cgi.executeCGI();
 		size_t pos = ret.find("\r\n\r\n");
 		std::string headers = ret.substr(0, pos);
