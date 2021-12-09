@@ -183,7 +183,7 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 std::string Client::WrapHeader(const std::string& msg)
 {
 	std::stringstream	stream;
-	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
+	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status];
 	std::string headers = "";
 	std::string body = "";
 	size_t pos = msg.find("\r\n\r\n");
