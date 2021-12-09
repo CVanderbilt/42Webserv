@@ -160,7 +160,7 @@ void	Client::BuildResponse()
 			std::cerr << e.what() << '\n';
 		}
 	}
-	stream << BuildHeader(body);
+	stream << WrapHeader(body);
 	_response = stream.str();
 //	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
@@ -180,7 +180,7 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 	}
 }
 
-std::string Client::BuildHeader(const std::string& msg)
+std::string Client::WrapHeader(const std::string& msg)
 {
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
@@ -203,7 +203,7 @@ std::string Client::BuildHeader(const std::string& msg)
 	stream << headers << "\r\n" << body;
 	return (stream.str());
 }
-
+/*
 std::string	Client::BuildHeader(size_t size)
 {
 	std::stringstream	stream;
@@ -221,7 +221,7 @@ std::string	Client::BuildHeader(size_t size)
 		stream << "\r\n";
 	}
 	return (stream.str());
-}
+}*/
 
 std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
 {
