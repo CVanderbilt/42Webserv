@@ -69,7 +69,7 @@ public:
 	std::string	BuildDelete();
 	std::string	BuildAutoindex();
 	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
-	std::string	BuildHeader(size_t size = 0);
+	std::string	BuildHeader(const std::string& msg);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
 	void 		reset();

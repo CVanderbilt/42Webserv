@@ -145,12 +145,12 @@ void	Client::BuildResponse()
 		{
 			if (_s->error_pages.count(_response_status) > 0)
 			{
-				body = ExtractFile(_s->error_pages.find(_response_status)->second);
+				body = "\r\n" + ExtractFile(_s->error_pages.find(_response_status)->second);
 			}
 			else
 			{
 				std::cout << "error: " << _response_status << ", doesnt have html page" << std::endl;
-				body = "";
+				body = "\r\n";
 			}
 		}
 		catch(const std::exception& e)
@@ -160,13 +160,49 @@ void	Client::BuildResponse()
 			std::cerr << e.what() << '\n';
 		}
 	}
-	stream << BuildHeader(body.length());
-	stream << body;
+	stream << BuildHeader(body);
 	_response = stream.str();
 //	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
+template<typename T>
+static void AddIfNotSet(std::string& headers, const std::string& header, const T& value)
+{
+	std::stringstream	stream;
+	stream << header << ":";
+	size_t pos = headers.find(stream.str());
+	if (pos == headers.npos)
+	{
+		std::cout << "adding " << header << ": " << value << std::endl;
+		stream << " " << value << "\r\n";
+		headers += stream.str();
+	}
+}
+
+std::string Client::BuildHeader(const std::string& msg)
+{
+	std::stringstream	stream;
+	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status] << "\r\n";
+	std::string headers = "";
+	std::string body = "";
+	size_t pos = msg.find("\r\n\r\n");
+	size_t pos2 = msg.find("\r\n");
+	pos = pos2 >= pos ? pos : pos2;
+
+	if (pos != msg.npos)
+	{
+		headers = msg.substr(0, pos);
+		body = msg.substr(pos + 2, msg.npos);
+	}
+	AddIfNotSet(headers, "Content-Type", "text/html");
+	AddIfNotSet(headers, "Content-Length", body.length());
+	if (_response_status == 301)
+		AddIfNotSet(headers ,"Location", _redirect);
+	//AddIfNotSet(headers, "Date", getDate());
+	stream << headers << "\r\n" << body;
+	return (stream.str());
+}
 
 std::string	Client::BuildHeader(size_t size)
 {
@@ -260,8 +296,6 @@ std::string Client::ExecuteCGI(const server_location *s)
 
 std::string	Client::BuildGet()
 {
-	std::string	ret;
-
 	_response_status = 200;
 	const server_location *s = locationByUri(_request.uri, _s->locations);
 	if (!s)
@@ -278,7 +312,7 @@ std::string	Client::BuildGet()
 	{
 		_response_status = 301;
 		_redirect = s->redirect;
-		return ("");
+		return ("\r\n");
 	}
 	else 
 	{
@@ -289,7 +323,7 @@ std::string	Client::BuildGet()
 				std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
 				try
 				{
-					return (ExtractFile(s->root + *it));
+					return ("\r\n" + ExtractFile(s->root + *it));
 				}
 				catch(const std::exception& e)
 				{
@@ -300,7 +334,7 @@ std::string	Client::BuildGet()
 			if (s->autoindex)
 			{
 				std::cout << "Sending autoindex" << std::endl;
-				return (GetAutoIndex(s->root, s->path));
+				return ("\r\n" + GetAutoIndex(s->root, s->path));
 			}
 			_response_status = 404;
 			return ("");
@@ -309,7 +343,7 @@ std::string	Client::BuildGet()
 		{
 			try
 			{
-				return (ExtractFile(s->root + _request.file_uri));
+				return ("\r\n" + ExtractFile(s->root + _request.file_uri));
 			}
 			catch(const std::exception& e)
 			{
@@ -319,19 +353,19 @@ std::string	Client::BuildGet()
 		}
 	}
 	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
-	return (ret);
+	_response_status = 500;
+	return ("");
 }
 
 std::string	Client::BuildPost()
 {
-	std::string ret = "";
 	const server_location *s = locationByUri(_request.uri, _s->locations);
 
 	_response_status = 200;
 	if (!s)
 	{
 		_response_status = 404;
-		return (ret);
+		return ("\r\n");
 	}
 	if (_is_CGI)
 	{
@@ -354,12 +388,11 @@ std::string	Client::BuildPost()
 					else
 					{
 						_response_status = 500;
-						return (ret);
 					}
 				}
 	}
 	std::cout << "========================================" << std::endl;
-	return (ret);
+	return ("\r\n");
 }
 
 std::string	Client::BuildDelete()
@@ -379,7 +412,7 @@ std::string	Client::BuildDelete()
 	}
 
 	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
-	return (ret);
+	return ("\r\n" + ret);
 }
 
 std::map<int, std::string>	Client::StatusMessages()
