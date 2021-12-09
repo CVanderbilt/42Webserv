@@ -192,10 +192,11 @@ std::string Client::WrapHeader(const std::string& msg)
 
 	if (pos != msg.npos)
 	{
-		headers = msg.substr(0, pos);
+		headers = msg.substr(0, pos + 2);
+		std::cout << "headers >" << headers << "<" << std::endl;
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	AddIfNotSet(headers, "Content-Type", "text/html");
+	AddIfNotSet(headers, "Content-type", "text/html");
 	AddIfNotSet(headers, "Content-Length", body.length());
 	if (_response_status == 301)
 		AddIfNotSet(headers ,"Location", _redirect);
