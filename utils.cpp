@@ -119,7 +119,9 @@ server_location::server_location(const server_location& other):
 	write_path(other.write_path)
 {}
 
-server_info::server_info()
+server_info::server_info():
+	port("8080"),
+	max_body_size((size_t)-1)
 {}
 
 server_info::server_info(const server_info& other):
@@ -127,5 +129,6 @@ server_info::server_info(const server_info& other):
 	error_pages(other.error_pages),
 	locations(other.locations),
 	port(other.port),
-	cgi_paths(other.cgi_paths)
+	cgi_paths(other.cgi_paths),
+	max_body_size(other.max_body_size)
 {}
