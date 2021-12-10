@@ -514,7 +514,16 @@ std::string	Client::lastModified()
 //		std::cout << "_request.uri = " << _request.uri << std::endl;
 //		std::cout << "root = " << s->root << std::endl;
 		if (s->index.size() > 0)
-			path = s->root + "/" + s->index[0];
+		{
+			for (size_t i = 0; i < s->index.size(); i++)
+			{
+				path = s->root + s->index[i];
+//		std::cout << "path = " << path << std::endl;
+//		std::cout << "exists = " << fileExists(path) << std::endl;
+				if (fileExists(path))
+					break;
+			}
+		}
 		else if (_request.file_uri != "")
 			path = s->root + "/" + _request.file_uri;
 //		std::cout << "path = " << path << std::endl;

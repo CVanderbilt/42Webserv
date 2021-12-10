@@ -58,11 +58,11 @@ bool isPort(std::string p)
 	return (true);
 }
 
-int FileExists(std::string file)
+bool fileExists(std::string file)
 {
 	struct stat st;
 
-	return (stat(file.c_str(), &st));
+	return (stat(file.c_str(), &st) == 0);
 }
 
 std::string ExtractFile(std::string filename)
