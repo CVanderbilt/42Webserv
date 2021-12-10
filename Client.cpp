@@ -5,8 +5,7 @@ Client::Client() :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(MAX_BODY_SIZE),
-	_request(_max_body_size),
+	_request(-1),
 	_stat_msg(StatusMessages()),
 	_is_CGI(false),
 	_time_check(ft_now())
@@ -18,8 +17,7 @@ Client::Client(int fd) :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(MAX_BODY_SIZE),
-	_request(_max_body_size),
+	_request(-1),
 	_stat_msg(StatusMessages()),
 	_is_CGI(false),
 	_time_check(ft_now())
@@ -32,11 +30,11 @@ Client::Client(Client const &copy) :
 	_status(copy._status),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
-	_max_body_size(copy._max_body_size),
 	_request(copy._request),
 	_stat_msg(copy._stat_msg),
 	_is_CGI(copy._is_CGI),
-	_time_check(copy._time_check)
+	_time_check(copy._time_check),
+	_s(copy._s)
 {
 } 
 
@@ -105,8 +103,8 @@ int		Client::ResponseStatus()
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		else if (_request.body.length() > _max_body_size)
-			return (_response_status = 413);
+		//else if (_request.body.length() > _s->max_body_size)
+		//	return (_response_status = 413);
 		else
 			return (_response_status = 400);
 	}
@@ -445,6 +443,7 @@ std::map<int, std::string>	Client::StatusMessages()
 void		Client::setServer(server_info *s)
 {
 	_s = s;
+	_request.max_size = s->max_body_size;
 }
 
 const Http_req&	Client::GetRequest()
@@ -454,7 +453,7 @@ const Http_req&	Client::GetRequest()
 
 void Client::reset()
 {
-	_request.initialize(this->_max_body_size);
+	_request.initialize(_s->max_body_size);
 	_response_sent = 0;
 	_response_left = 0;
 	_status = -1;

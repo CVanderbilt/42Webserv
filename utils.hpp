@@ -38,6 +38,7 @@ struct	server_info
 		std::string							port;
 		std::map<std::string,std::string>	const *cgi_paths;
 		std::string							root;
+		size_t								max_body_size;
 		//client size, no se si algo más, sobre la marcha
 		server_info();
 		server_info(const server_info& other);

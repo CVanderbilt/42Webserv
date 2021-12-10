@@ -32,7 +32,6 @@ private:
 	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
-	size_t						_max_body_size;
 	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
 	bool						_is_CGI;

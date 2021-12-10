@@ -43,6 +43,8 @@ void Server::addServer(server_config const& s)
 				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
 			_configuration.error_pages[std::atoi(it->first.c_str())] = aux[0];
 		}
+		else if (it->first == "body_size")
+			_configuration.max_body_size = std::atoll(it->second.c_str());
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
