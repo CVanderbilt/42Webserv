@@ -66,11 +66,11 @@ public:
 	std::string	BuildDelete(const server_location *);
 	std::string	BuildAutoindex();
 	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
-	std::string	WrapHeader(const std::string& msg);
+	std::string	WrapHeader(const std::string& msg, const server_location *);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
 	void 		reset();
 	bool		isCGI(const server_location *);
 	bool		hasTimedOut();
-	std::string	lastModified();
+	std::string	lastModified(const server_location *);
 };

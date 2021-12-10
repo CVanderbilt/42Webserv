@@ -156,7 +156,7 @@ void	Client::BuildResponse()
 			std::cerr << e.what() << '\n';
 		}
 	}
-	stream << WrapHeader(body);
+	stream << WrapHeader(body, s);
 	_response = stream.str();
 	_response_left = _response.length();
 }
@@ -175,7 +175,7 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 	}
 }
 
-std::string Client::WrapHeader(const std::string& msg)
+std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 {
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status];
@@ -194,8 +194,8 @@ std::string Client::WrapHeader(const std::string& msg)
 	AddIfNotSet(headers, "Content-type", "text/html");
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
-	if (_request.method.compare("GET") == 0)
-		AddIfNotSet(headers, "Last-Modified", lastModified());
+	if (_request.method.compare("GET") == 0 && s != 0)
+		AddIfNotSet(headers, "Last-Modified", lastModified(s));
 	if (_response_status == 301)
 		AddIfNotSet(headers ,"Location", _redirect);
 	if (_response_status == 301)
@@ -478,7 +478,7 @@ bool	Client::hasTimedOut()
 	return (false);
 }
 
-std::string	Client::lastModified()
+std::string	Client::lastModified(const server_location *s)
 {
 	char			buffer[30];
 	struct stat		stats;
@@ -488,7 +488,7 @@ std::string	Client::lastModified()
 
 //	std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Last Modified >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
 
-	const server_location *s = locationByUri(_request.uri, _s->locations);
+	//const server_location *s = locationByUri(_request.uri, _s->locations);
 	if (s)
 	{
 //		std::cout << "_request.uri = " << _request.uri << std::endl;
