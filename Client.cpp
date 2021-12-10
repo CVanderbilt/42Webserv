@@ -196,7 +196,7 @@ std::string Client::WrapHeader(const std::string& msg)
 		std::cout << "headers >" << headers << "<" << std::endl;
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	AddIfNotSet(headers, "Content-type", "text/html");
+	AddIfNotSet(headers, "Content-type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
 	if (_request.method.compare("GET") == 0)
@@ -539,4 +539,32 @@ std::string	Client::lastModified()
 		}
 	}
 	return (std::string(buffer));
+}
+
+std::string		Client::setContentType()
+{
+	std::string type;
+	std::string str;
+	size_t		i;
+	
+	str = _request.uri;
+//	std::cout << "<<<<<<<<<<<<<<<<prueba de content types>>>>>>>>>>>>>>>>" << std::endl;
+//	std::cout << "uri = " << str << std::endl;
+	if ((i = str.find_last_of(".")) != str.npos)
+		str = str.substr(i + 1, str.length() - i);
+	std::cout << "extension = " << str << std::endl;
+	if (str == "css")
+		type = "text/css";
+	else if (str == "js")
+		type = "application/javascript";
+	else if (str == "jpeg" || str == "jpg")
+		type = "image/jpeg";
+	else if (str == "png")
+		type = "image/png";
+	else if (str == "bmp")
+		type = "image/bmp";
+	else
+		type = "text/html";
+//	std::cout << "type = " << type << std::endl;
+	return (type);
 }

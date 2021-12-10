@@ -76,5 +76,6 @@ public:
 	bool		isCGI();
 	bool		hasTimedOut();
 	std::string	lastModified();
+	std::string	setContentType();
 
 };
