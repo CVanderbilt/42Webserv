@@ -10,6 +10,27 @@ uint64_t ft_now(void)
 	return ((tv.tv_sec * (uint64_t)1000) + (tv.tv_usec / 1000));
 }
 
+std::string getActualDate(void)
+	{
+		struct timeval tv;
+		char buffer[30];
+		size_t written;
+		struct tm *gm;
+
+		if (gettimeofday(&tv, NULL) != 0)
+		{
+			perror("gettimeofday");
+		}
+		gm = gmtime(&tv.tv_sec);
+		if (gm)
+		{
+			written = strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gm);
+			if (written <= 0)
+				perror("strftime");
+		}
+		return (std::string(buffer));
+	}
+
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {
 	std::vector<std::string> ret;
@@ -37,11 +58,11 @@ bool isPort(std::string p)
 	return (true);
 }
 
-int FileExists(std::string file)
+bool fileExists(std::string file)
 {
 	struct stat st;
 
-	return (stat(file.c_str(), &st));
+	return (stat(file.c_str(), &st) == 0);
 }
 
 std::string ExtractFile(std::string filename)
@@ -109,6 +130,5 @@ server_info::server_info(const server_info& other):
 	locations(other.locations),
 	port(other.port),
 	cgi_paths(other.cgi_paths),
-	root(other.root),
 	max_body_size(other.max_body_size)
 {}

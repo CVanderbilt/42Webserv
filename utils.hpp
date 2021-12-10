@@ -37,7 +37,6 @@ struct	server_info
 		std::vector<server_location>		locations;
 		std::string							port;
 		std::map<std::string,std::string>	const *cgi_paths;
-		std::string							root;
 		size_t								max_body_size;
 		//client size, no se si algo más, sobre la marcha
 		server_info();
@@ -46,9 +45,10 @@ struct	server_info
 
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep);
 bool		isPort(std::string p);
-int			FileExists(std::string file);
+bool		fileExists(std::string file);
 std::string ExtractFile(std::string file);
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs);
-uint64_t ft_now(void);
+uint64_t 	ft_now(void);
+std::string getActualDate(void);
 
 #endif
