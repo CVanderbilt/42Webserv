@@ -7,7 +7,6 @@ Client::Client() :
 	_response_left(0),
 	_request(-1),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false),
 	_time_check(ft_now())
 {
 }
@@ -19,7 +18,6 @@ Client::Client(int fd) :
 	_response_left(0),
 	_request(-1),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false),
 	_time_check(ft_now())
 {
 }
@@ -32,7 +30,6 @@ Client::Client(Client const &copy) :
 	_response_left(copy._response_left),
 	_request(copy._request),
 	_stat_msg(copy._stat_msg),
-	_is_CGI(copy._is_CGI),
 	_time_check(copy._time_check),
 	_s(copy._s)
 {
@@ -63,12 +60,7 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
-	{
 		_status = 1;
-		_is_CGI = isCGI();
-//		std::cout << "isCGI = " << _is_CGI << std::endl;
-	}
-//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -96,17 +88,18 @@ void	Client::setResponseLeft(size_t left)
 	_response_left = left;
 }
 
-int		Client::ResponseStatus()
+int		Client::ResponseStatus(const server_location *s)
 {
 	/*TODO: completar con más codigos, como el 404...*/
+	if (!s)
+		return (_response_status = 404);
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		//else if (_request.body.length() > _s->max_body_size)
-		//	return (_response_status = 413);
-		else
-			return (_response_status = 400);
+		if (_request.body.length() > _s->max_body_size)
+			return (_response_status = 413);
+		return (_response_status = 400);
 	}
 	if (MethodAllowed() == false)
 		return (_response_status = 501);
@@ -127,15 +120,20 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
-	ResponseStatus();
-	if (_request.status == Http_req::PARSE_ERROR)
-		_response_status = 400;
-	else if (_request.method.compare("GET") == 0)
-		body = BuildGet();
-	else if (_request.method.compare("POST") == 0)
-		body = BuildPost();
-	else if (_request.method.compare("DELETE") == 0)
-		body = BuildDelete();
+
+	const server_location *s = locationByUri(_request.uri, _s->locations);
+	ResponseStatus(s);
+	if (_response_status < 400)
+	{
+		if (isCGI(s))
+			body = ExecuteCGI(s);
+		else if (_request.method.compare("GET") == 0)
+			body = BuildGet(s);
+		else if (_request.method.compare("POST") == 0)
+			body = BuildPost(s);
+		else if (_request.method.compare("DELETE") == 0)
+			body = BuildDelete(s);
+	}
 	if (_response_status >= 400)
 	{
 		std::cout << "attempt to respond with error page" << std::endl;
@@ -160,7 +158,6 @@ void	Client::BuildResponse()
 	}
 	stream << WrapHeader(body);
 	_response = stream.str();
-//	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
@@ -261,6 +258,8 @@ std::string Client::ExecuteCGI(const server_location *s)
 {
 	try
 	{
+		if (_request.method.compare("DELETE") == 0)
+			throw 405 ;
 		std::string ret;
 		CGI cgi(&_request, s, _s);
 		ret = cgi.executeCGI();
@@ -293,21 +292,12 @@ std::string Client::ExecuteCGI(const server_location *s)
 	
 }
 
-std::string	Client::BuildGet()
+std::string	Client::BuildGet(const server_location *s)
 {
 	_response_status = 200;
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-	if (!s)
-	{
-		_response_status = 404;
-		return ("");
-	}
+	
 	std::cout << "s->redirect = " << s->redirect << std::endl;
-	if (_is_CGI)
-	{
-		return (ExecuteCGI(s));
-	}
-	else if (s->redirect != "")
+	if (s->redirect != "")
 	{
 		_response_status = 301;
 		_redirect = s->redirect;
@@ -356,62 +346,54 @@ std::string	Client::BuildGet()
 	return ("");
 }
 
-std::string	Client::BuildPost()
+std::string	Client::BuildPost(const server_location *s)
 {
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-
 	_response_status = 200;
-	if (!s)
+	if (s->write_enabled)
 	{
-		_response_status = 404;
-		return ("\r\n");
-	}
-	if (_is_CGI)
-	{
-		return (ExecuteCGI(s));
+		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
+			if (_request.mult_form_data[i].filename != "")
+			{
+				std::ofstream file;
+				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				file.open(_req_file.c_str());
+				if (file.is_open() && file.good())
+				{
+					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+					file.close();
+				}
+				else
+				{
+					_response_status = 500;
+				}
+			}
 	}
 	else
-	{
-		if (s->write_enabled)
-			for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-				if (_request.mult_form_data[i].filename != "")
-				{
-					std::ofstream file;
-					_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
-					file.open(_req_file.c_str());
-					if (file.is_open() && file.good())
-					{
-						file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
-						file.close();
-					}
-					else
-					{
-						_response_status = 500;
-					}
-				}
-	}
+		_response_status = 405;
 	std::cout << "========================================" << std::endl;
 	return ("\r\n");
 }
 
-std::string	Client::BuildDelete()
+std::string	Client::BuildDelete(const server_location *s)
 {
 	std::string	ret;
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-
 	_req_file = s->write_path + _request.uri;
-
 	_response_status = 200;
-	if (unlink(_req_file.c_str()) < 0)
+	if (s->write_enabled)
 	{
-		_response_status = 500;
-		if (errno == EACCES || errno == EPERM || errno == EROFS)
-			_response_status = 403;
-		return ("");
-	}
+		if (unlink(_req_file.c_str()) < 0)
+		{
+			_response_status = 500;
+			if (errno == EACCES || errno == EPERM || errno == EROFS)
+				_response_status = 403;
+			return ("");
+		}
 
-	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
-	return ("\r\n" + ret);
+		ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
+		return ("\r\n" + ret);
+	}
+	_response_status = 403;
+	return ("");
 }
 
 std::map<int, std::string>	Client::StatusMessages()
@@ -459,7 +441,7 @@ void Client::reset()
 	_status = -1;
 }
 
-bool Client::isCGI()
+bool Client::isCGI(const server_location *s)
 {
 	std::string	str;
 	size_t		i;
@@ -471,7 +453,6 @@ bool Client::isCGI()
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
 //std::cout << "str = " << str << std::endl;
-	const server_location *s = locationByUri(_request.uri, _s->locations);
 	if(!s)
 		return false;
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)

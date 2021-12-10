@@ -20,7 +20,6 @@
 #include "CGI.hpp"
 
 #define TIMEOUT 3000 // in miliseconds
-#define MAX_BODY_SIZE 50000000
 
 class Client
 {
@@ -34,7 +33,6 @@ private:
 	size_t						_response_left;
 	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
-	bool						_is_CGI;
 	bool						_is_autoindex;
 	std::string					_req_file;
 	std::string					_redirect;
@@ -61,17 +59,17 @@ public:
 	void		setResponseSent(size_t sent);
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
-	int			ResponseStatus();
+	int			ResponseStatus(const server_location *);
 	bool		MethodAllowed();
-	std::string	BuildGet();
-	std::string	BuildPost();
-	std::string	BuildDelete();
+	std::string	BuildGet(const server_location *);
+	std::string	BuildPost(const server_location *);
+	std::string	BuildDelete(const server_location *);
 	std::string	BuildAutoindex();
 	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
 	std::string	WrapHeader(const std::string& msg);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
 	void 		reset();
-	bool		isCGI();
+	bool		isCGI(const server_location *);
 	bool hasTimedOut();
 };
