@@ -198,9 +198,16 @@ std::string Client::WrapHeader(const std::string& msg)
 	}
 	AddIfNotSet(headers, "Content-type", "text/html");
 	AddIfNotSet(headers, "Content-Length", body.length());
+	AddIfNotSet(headers, "Date", getActualDate());
+	if (_request.method.compare("GET") == 0)
+		AddIfNotSet(headers, "Last-Modified", lastModified());
 	if (_response_status == 301)
 		AddIfNotSet(headers ,"Location", _redirect);
-	//AddIfNotSet(headers, "Date", getDate());
+	if (_response_status == 301)
+		AddIfNotSet(headers ,"Retry-After", 0);
+	else if (_response_status == 503)
+		AddIfNotSet(headers ,"Retry-After", 120);
+	AddIfNotSet(headers, "Server", "Webserv/0.9");
 	stream << headers << "\r\n" << body;
 	return (stream.str());
 }
@@ -483,9 +490,44 @@ bool Client::isCGI()
 	}
 	return false;
 }
-bool Client::hasTimedOut()
+
+bool	Client::hasTimedOut()
 {
 	if (ft_now() - TIMEOUT >= _time_check)
 		return (true);
 	return (false);
+}
+
+std::string	Client::lastModified()
+{
+	char			buffer[30];
+	struct stat		stats;
+	struct tm		*gm;
+	size_t			written;
+	std::string		path;
+
+//	std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Last Modified >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+
+	const server_location *s = locationByUri(_request.uri, _s->locations);
+	if (s)
+	{
+//		std::cout << "_request.uri = " << _request.uri << std::endl;
+//		std::cout << "root = " << s->root << std::endl;
+		if (s->index.size() > 0)
+			path = s->root + "/" + s->index[0];
+		else if (_request.file_uri != "")
+			path = s->root + "/" + _request.file_uri;
+//		std::cout << "path = " << path << std::endl;
+		if (stat(path.c_str(), &stats) == 0)
+		{
+			gm = gmtime(&stats.st_mtime);
+			if (gm)
+			{
+				written = strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gm);
+				if (written <= 0)
+					perror("strftime");
+			}
+		}
+	}
+	return (std::string(buffer));
 }

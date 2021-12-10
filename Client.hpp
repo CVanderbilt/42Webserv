@@ -41,7 +41,7 @@ private:
 	std::string					_redirect;
 	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
-	server_info *_s;
+	server_info 				*_s;
 
 	std::string		ExecuteCGI(const server_location *s);
 public:
@@ -74,5 +74,7 @@ public:
 	const Http_req&	GetRequest();
 	void 		reset();
 	bool		isCGI();
-	bool hasTimedOut();
+	bool		hasTimedOut();
+	std::string	lastModified();
+
 };
