@@ -95,6 +95,12 @@ bool checkUri(const std::string& path, const std::string& uri)
 
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
 {
+	if (*(uri.cend() - 1) != '/')
+	{
+		const server_location *s = locationByUri(uri + "/", locs);
+		if (s != NULL)
+			return (s);
+	}
 	size_t pos = uri.find_last_of('/');
 	if (pos == uri.npos)
 		return (NULL);
