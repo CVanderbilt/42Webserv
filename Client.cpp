@@ -272,6 +272,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 		ret = cgi.executeCGI();
 		size_t pos = ret.find("\r\n\r\n");
 		std::string headers = ret.substr(0, pos);
+		ret = ret.substr(pos + 1, ret.size() - pos - 1);
 		pos = headers.find("Status");
 		if (pos == headers.npos)
 			pos = headers.find("status");
@@ -289,7 +290,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 				_response_status = std::atoi(headers.c_str());
 			}
 		}
-		return (ret);
+		return ("\r\n" + ret);
 	}
 	catch(int err)
 	{
@@ -303,7 +304,7 @@ std::string	Client::BuildGet(const server_location *s)
 {
 	_response_status = 200;
 	
-	std::cout << "s->redirect = " << s->redirect << std::endl;
+//	std::cout << "s->redirect = " << s->redirect << std::endl;
 	if (s->redirect != "")
 	{
 		_response_status = 301;
@@ -378,6 +379,8 @@ std::string	Client::BuildPost(const server_location *s)
 	else
 		_response_status = 405;
 	std::cout << "========================================" << std::endl;
+	if (_response_status == 200)
+		return ("\r\n<html>\n<body>\n<h1>File uploaded correctly</h1>\n</body>\n</html>");
 	return ("\r\n");
 }
 
