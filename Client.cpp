@@ -120,11 +120,16 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
-
+	
 	const server_location *s = locationByUri(_request.uri, _s->locations);
 	ResponseStatus(s);
 	if (_response_status < 400)
 	{
+		if (s->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
+		{
+			_request.uri += "/";
+			_request.file_uri = "";
+		}
 		if (isCGI(s))
 			body = ExecuteCGI(s);
 		else if (_request.method.compare("GET") == 0)
