@@ -95,17 +95,20 @@ bool checkUri(const std::string& path, const std::string& uri)
 
 const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
 {
-	if (*(uri.cend() - 1) != '/')
+	std::cout << "uri: >" << uri << "<" << std::endl;
+	std::cout << "*(uri.end() - 1): >" << *(uri.end() - 1) << "<" << std::endl;
+	if (*(uri.end() - 1) != '/')
 	{
 		const server_location *s = locationByUri(uri + "/", locs);
 		if (s != NULL)
 			return (s);
 	}
 	size_t pos = uri.find_last_of('/');
+	std::cout << "uri.find_last_of('/'): >" << uri.find_last_of('/') << "<" << std::endl;
 	if (pos == uri.npos)
 		return (NULL);
 	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
-//	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
+	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
 	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
 		if (it->path == uri_directory)
 			return (&(*it));
