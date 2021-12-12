@@ -93,9 +93,9 @@ bool checkUri(const std::string& path, const std::string& uri)
 	return (true);
 }
 
-const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
+const server_location *locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
 {
-	std::cout << "uri: >" << uri << "<" << std::endl;
+	std::string uri = rawuri.substr(0, rawuri.find('?'));
 	std::cout << "*(uri.end() - 1): >" << *(uri.end() - 1) << "<" << std::endl;
 	if (*(uri.end() - 1) != '/')
 	{
