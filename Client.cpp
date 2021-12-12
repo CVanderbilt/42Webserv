@@ -150,8 +150,11 @@ void	Client::BuildResponse()
 			}
 			else
 			{
-				std::cout << "error: " << _response_status << ", doesnt have html page" << std::endl;
-				body = "\r\n";
+				std::stringstream	stream;
+				stream << "\r\n<html>\n<body>\n<h1>";
+				stream << _response_status << " " << _stat_msg[_response_status];
+				stream << "</h1>\n</body>\n</html>";
+				body = stream.str();
 			}
 		}
 		catch(const std::exception& e)
