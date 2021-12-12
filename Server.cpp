@@ -179,6 +179,7 @@ void	Server::read_message(int i)
 			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
 	}
+	delete[] buffer;
 }
 
 void	Server::server_listen()
