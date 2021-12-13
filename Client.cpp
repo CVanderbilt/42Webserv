@@ -546,6 +546,8 @@ std::string		Client::setContentType()
 		type = "image/jpeg";
 	else if (str == "png")
 		type = "image/png";
+	else if (str == "pdf")
+		type = "application/pdf";
 	else if (str == "bmp")
 		type = "image/bmp";
 	else
