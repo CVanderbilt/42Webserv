@@ -145,23 +145,17 @@ void	Client::BuildResponse()
 		try
 		{
 			if (_s->error_pages.count(_response_status) > 0)
-			{
 				body = "\r\n" + ExtractFile(_s->error_pages.find(_response_status)->second);
-			}
 			else
-			{
-				std::stringstream	stream;
-				stream << "\r\n<html>\n<body>\n<h1>";
-				stream << _response_status << " " << _stat_msg[_response_status];
-				stream << "</h1>\n</body>\n</html>";
-				body = stream.str();
-			}
+				throw std::exception();
 		}
 		catch(const std::exception& e)
 		{
-			std::cout << "file not found" << std::endl;
-			body = "";
-			std::cerr << e.what() << '\n';
+			std::stringstream	stream;
+			stream << "\r\n<html>\n<body>\n<h1>";
+			stream << _response_status << " " << _stat_msg[_response_status];
+			stream << "</h1>\n</body>\n</html>";
+			body = stream.str();
 		}
 	}
 	stream << WrapHeader(body, s);
