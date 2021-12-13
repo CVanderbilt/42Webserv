@@ -1,6 +1,6 @@
 #include "Server.hpp"
 #include "utils.hpp"
-
+/*
 Server::Server() :
 	_fd_size(2),
 	_port(8080),
@@ -13,36 +13,38 @@ Server::Server(int port) :
 	_port(port),
 	_addrlen(sizeof(_addr)),
 	_pfds(new pollfd[_fd_size])
-{}
+{}*/
 
 Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path) :
 	_fd_size(2),
-	_port(8080),
 	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size]),
-	_cgi_paths(cgi_exec_path)
+	_pfds(new pollfd[_fd_size])
 {
-	_cgi_paths->count(".py");
+	//_cgi_paths->count(".py");
 	addServer(s);
+	_configuration.cgi_paths = cgi_exec_path;
 }
 
 void Server::addServer(server_config const& s)
 {
-	server_info ret;
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
-			_port = std::atoi(it->second.c_str());
+			//_port = std::atoi(it->second.c_str());
+			//_configuration.port = std::atoi(it->second.c_str());
+			_configuration.port = it->second;
 		else if (it->first == "server_name")
-			ret.names = splitIntoVector(it->second, " ");
+			_configuration.names = splitIntoVector(it->second, " ");
 		else if (it->first.length() == 3 && (it->first[0] == '4' || it->first[0] == '5') && 
 		isdigit(it->first[1]) && isdigit(it->first[2]))
 		{
 			std::vector<std::string> aux = splitIntoVector(it->second, " ");
 			if (aux.size() != 1)
 				throw ServerException("Configuration", "Invalid value in server block: >" + it->first + "<");
-			ret.error_pages[std::atoi(it->first.c_str())] = aux[0];
+			_configuration.error_pages[std::atoi(it->first.c_str())] = aux[0];
 		}
+		else if (it->first == "body_size")
+			_configuration.max_body_size = std::atoll(it->second.c_str());
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
@@ -51,63 +53,34 @@ void Server::addServer(server_config const& s)
 	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); ++it)
 	{
 		idx++;
-		ret.locations.resize(ret.locations.size() + 1);
-		ret.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		_configuration.locations.resize(_configuration.locations.size() + 1);
+		_configuration.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
-				ret.locations[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
+				_configuration.locations[idx].root = lit->second[lit->second.length() - 1] == '/' ? lit->second : lit->second + "/";
 			else if (lit->first == "autoindex")
 			{
 				if (lit->second == "on")
-					ret.locations[idx].autoindex = true;
+					_configuration.locations[idx].autoindex = true;
 				else if (lit->second != "off")
 					throw ServerException("Configuration", "Invalid value of autoindex field");
 			}
 			else if (lit->first == "cgi")
-				ret.locations[idx].cgi = splitIntoVector(lit->second, " ");
+				_configuration.locations[idx].cgi = splitIntoVector(lit->second, " ");
 			else if (lit->first == "index")
-				ret.locations[idx].index = splitIntoVector(lit->second, " ");
+				_configuration.locations[idx].index = splitIntoVector(lit->second, " ");
 			else if (lit->first == "write_enabled")
 			{
-				ret.locations[idx].write_enabled = true;
-				ret.locations[idx].write_path = lit->second;
+				_configuration.locations[idx].write_enabled = true;
+				_configuration.locations[idx].write_path = lit->second;
 			}
-			else if (lit->first == "port" && isPort(lit->second))
-				_server_location[idx].port = lit->second.c_str();
-			else if (lit->first == "server_name")
-				_server_location[idx].server_name = splitIntoVector(lit->second, " ")[0];
 			else if (lit->first == "redirection")
-				_server_location[idx].redirect = lit->second;
+				_configuration.locations[idx].redirect = lit->second;
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 		}
 	}
-	_configurations.push_back(ret);
-}
-
-void	Server::show()
-{
-	std::cout << "=================================================" << std::endl;
-	std::cout << "Servers on port: " << _port << std::endl;
-	for (std::vector<server_info>::iterator it = _configurations.begin();
-		it != _configurations.end(); it++)
-	{
-		std::cout << "names:";
-		for (std::vector<std::string>::iterator it2 = it->names.begin();
-		it2 != it->names.end(); it2++)
-			std::cout << " " << *it2;
-		std::cout << std::endl << "locations(root):";
-		for (std::vector<server_location>::const_iterator it2 = it->locations.begin();
-			it2 < it->locations.end(); it2++)
-			std::cout << " " << it2->root.c_str();
-		std::cout << std::endl << "error pages:";
-		for (std::map<int, std::string>::iterator it2 = it->error_pages.begin();
-			it2 != it->error_pages.end(); it2++)
-			std::cout << " " << it2->first << "->" << it2->second;
-		std::cout << std::endl;
-	}
-	std::cout << "=================================================" << std::endl;
 }
 
 void	Server::server_start()
@@ -120,7 +93,7 @@ void	Server::server_start()
 		throw ServerException("In fcntl", "failed for some reason");
 	}
 	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(_port);
+	_addr.sin_port = htons(std::atoi(_configuration.port.c_str()));
 	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 	int optval = 1;
@@ -168,6 +141,7 @@ void	Server::accept_connection()
 	if(_fd_count < MAX_CONNEC)
 	{
 		Client new_client(new_fd);
+		new_client.setServer(&_configuration);
 		add_to_pfds(new_fd);
 		if (_clients.count(new_fd) > 0)
 			std::cout << "=====================================================" << std::endl;
@@ -205,6 +179,7 @@ void	Server::read_message(int i)
 			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
 	}
+	delete[] buffer;
 }
 
 void	Server::server_listen()
@@ -323,30 +298,6 @@ void	Server::send_response(int i)
 {
 	size_t val_sent;
 
-	//desde aqui----------------------------------------------
-	server_info *ptr = &_configurations[0];
-	const Http_req req = _clients[_pfds[i].fd].GetRequest();
-	std::string host_name = "";
-	if (req.head.count("Host"))
-		host_name = req.head.find("Host")->second;
-	else if (req.head.count("host"))
-		host_name = req.head.find("host")->second;
-	if (host_name != "")
-	{
-		host_name = host_name.find_last_of(':') == host_name.npos ? host_name : host_name.substr(0, host_name.find_last_of(':'));
-		for (size_t j = 1; j < _configurations.size(); j++)
-		{
-			if (std::find(_configurations[j].names.begin(), _configurations[j].names.end(), host_name) != _configurations[j].names.end())
-			{
-				ptr = &_configurations[j];
-				break ;
-			}
-		}
-	}
-	//hasta aqui para decidir que configuración usar en el cliente
-	//se la podemos pasar por el buildresponse en vez de setserver
-	//de momento set server
-	_clients[_pfds[i].fd].setServer(ptr);
 	_clients[_pfds[i].fd].BuildResponse();
 //	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
@@ -380,9 +331,4 @@ Server::ServerException::ServerException(std::string function, std::string error
 const char *Server::ServerException::what(void) const throw()
 {
 	return (this->_error.c_str());
-}
-
-int Server::getPort()
-{
-	return (this->_port);
 }

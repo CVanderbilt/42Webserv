@@ -7,12 +7,12 @@ CGI::CGI()
 	_env_vec = envToVector(environ);
 }
 
-CGI::CGI(Http_req request, const server_location *s) :
+CGI::CGI(Http_req *request, const server_location *s, const server_info *info) :
 	_serv_loc(s),
 	_request(request),
 	_path_cgi(_serv_loc->root),
-	_name_cgi(_serv_loc->root + _request.file_uri)
-	
+	_name_cgi(_serv_loc->root + _request->file_uri),
+	_info(info)
 {
 	extern char **environ;
 
@@ -26,7 +26,8 @@ CGI::CGI(CGI const &copy) :
 	_name_cgi(copy._name_cgi),
 	_response_cgi(copy._response_cgi),
 	_CGI_fd(copy._CGI_fd),
-	_env_vec(copy._env_vec)
+	_env_vec(copy._env_vec),
+	_info(copy._info)
 {}
 
 std::string	CGI::executeCGI()
@@ -41,13 +42,18 @@ std::string	CGI::executeCGI()
 		throw 500;
 	if ((_CGI_fd = open("./cgi.temp", O_RDWR | O_CREAT | O_TRUNC | O_NOFOLLOW | O_NONBLOCK, 0666)) < 0)
 		throw 500;
-//	std::cout <<  "_request.body.c_str() = " << _request.body.c_str() << std::endl;
-	valwrite = write(this->_CGI_fd, _request.body.c_str(), _request.body.length());
+//	std::cout <<  "_request->body.c_str() = " << _request->body.c_str() << std::endl;
+	valwrite = write(this->_CGI_fd, _request->body.c_str(), _request->body.length());
 //	std::cout <<  "valwrite = " << valwrite << std::endl;
 	close(_CGI_fd);
 	if (pipe(pipes))
 		throw 500;
-	args[0] = strdup("/usr/bin/python2");
+	std::string aux = this->_request->file_uri;
+	aux = aux.substr(aux.find_last_of('.'), aux.npos);
+	std::map<std::string, std::string>::const_iterator it = _info->cgi_paths->find(aux);
+	if (it == _info->cgi_paths->end())
+		throw 500; //
+	args[0] = strdup(it->second.c_str());
 	args[1] = strdup(_name_cgi.c_str());
 	args[2] = NULL;
 	addEnvVars();
@@ -82,21 +88,28 @@ void CGI::childProcess(char **args, int &pipes_in)
 //	for (int i = 0; env[i]; i++)
 //		std::cout << env[i] << std::endl;
 	if (dup2(pipes_in, STDOUT) < 0)
-		std::cout << "Error en dup2" << std::endl;
+	{
+		std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+		exit(1);
+	}
 //	std::cout << "_request.body.length() = " << _request.body.length() << std::endl;
-	if (_request.body.length() > 0)
+	if (_request->body.length() > 0)
 	{
 		_CGI_fd = open("./cgi.temp", O_RDONLY, 0);
 		if (dup2(_CGI_fd, STDIN))
-			std::cout << "Error en dup2" << std::endl;
+		{
+			std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+			exit(1);
+		}
 	}
 	else
 		close(STDIN);
-	if (_request.body.length() > 0)
+	if (_request->body.length() > 0)
 		close(_CGI_fd);
 //	std::cout << "Antes del execve" << std::endl;
 	if ((ret = execve(args[0], args, env)) < 0)
-		std::cout << "Error en execve" << std::endl;
+		ret = 1;
+	std::cout << "Status: 500 Internal Server Error\r\n\r\n";
 	while (env[i])
 		free(env[i++]);
 	free(env);
@@ -146,24 +159,24 @@ char	**CGI::vectorToEnv(std::vector<std::string> env_vector)
 
 void	CGI::addEnvVars(void)
 {
-	_env_vec.push_back("SERVER_NAME="  + _serv_loc->server_name);
-	_env_vec.push_back("SERVER_PORT=" + _serv_loc->port);
+	_env_vec.push_back("SERVER_NAME="  + _info->names[0]);
+	_env_vec.push_back("SERVER_PORT=" + _info->port);
 	_env_vec.push_back("SERVER_SOFTWARE=webserv/1.0");
 	_env_vec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 	_env_vec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	_env_vec.push_back("REDIRECT_STATUS=200");
-	_env_vec.push_back("REQUEST_URI=" + _request.uri);
-	_env_vec.push_back("REQUEST_METHOD=" + _request.method);
+	_env_vec.push_back("REQUEST_URI=" + _request->uri);
+	_env_vec.push_back("REQUEST_METHOD=" + _request->method);
 	_env_vec.push_back("AUTH_TYPE=NULL");
 	_env_vec.push_back("REMOTE_USER=NULL");
-	if (_request.head.count("content-type"))
-		_env_vec.push_back("CONTENT_TYPE=" + _request.head["Content-Type"]);
-	if (_request.head.count("Content-Length"))
-		_env_vec.push_back("CONTENT_LENGTH=" + _request.head["Content-Length"]);
+	if (_request->head.count("content-type"))
+		_env_vec.push_back("CONTENT_TYPE=" + _request->head["Content-Type"]);
+	if (_request->head.count("Content-Length"))
+		_env_vec.push_back("CONTENT_LENGTH=" + _request->head["Content-Length"]);
 	else
 		_env_vec.push_back("CONTENT_LENGTH=0");
-	_env_vec.push_back("QUERY_STRING=" + _request.query_string);
-	_env_vec.push_back("PATH_INFO=" + _request.uri);
+	_env_vec.push_back("QUERY_STRING=" + _request->query_string);
+	_env_vec.push_back("PATH_INFO=" + _request->uri);
 	_env_vec.push_back("PATH_TRANSLATED=" + _path_cgi);
 	_env_vec.push_back("SCRIPT_NAME=" + _name_cgi);
 	_env_vec.push_back("SCRIPT_FILENAME=" + _name_cgi);

@@ -10,6 +10,27 @@ uint64_t ft_now(void)
 	return ((tv.tv_sec * (uint64_t)1000) + (tv.tv_usec / 1000));
 }
 
+std::string getActualDate(void)
+	{
+		struct timeval tv;
+		char buffer[30];
+		size_t written;
+		struct tm *gm;
+
+		if (gettimeofday(&tv, NULL) != 0)
+		{
+			perror("gettimeofday");
+		}
+		gm = gmtime(&tv.tv_sec);
+		if (gm)
+		{
+			written = strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gm);
+			if (written <= 0)
+				perror("strftime");
+		}
+		return (std::string(buffer));
+	}
+
 std::vector<std::string> splitIntoVector(std::string str, const std::string& sep)
 {
 	std::vector<std::string> ret;
@@ -37,11 +58,11 @@ bool isPort(std::string p)
 	return (true);
 }
 
-int FileExists(std::string file)
+bool fileExists(std::string file)
 {
 	struct stat st;
 
-	return (stat(file.c_str(), &st));
+	return (stat(file.c_str(), &st) == 0);
 }
 
 std::string ExtractFile(std::string filename)
@@ -72,13 +93,22 @@ bool checkUri(const std::string& path, const std::string& uri)
 	return (true);
 }
 
-const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs)
+const server_location *locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
 {
+	std::string uri = rawuri.substr(0, rawuri.find('?'));
+	std::cout << "*(uri.end() - 1): >" << *(uri.end() - 1) << "<" << std::endl;
+	if (*(uri.end() - 1) != '/')
+	{
+		const server_location *s = locationByUri(uri + "/", locs);
+		if (s != NULL)
+			return (s);
+	}
 	size_t pos = uri.find_last_of('/');
+	std::cout << "uri.find_last_of('/'): >" << uri.find_last_of('/') << "<" << std::endl;
 	if (pos == uri.npos)
 		return (NULL);
 	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
-//	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
+	std::cout << "searching for location with path: >" << uri_directory << "<" << std::endl;
 	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
 		if (it->path == uri_directory)
 			return (&(*it));
@@ -98,11 +128,16 @@ server_location::server_location(const server_location& other):
 	write_path(other.write_path)
 {}
 
-server_info::server_info()
+server_info::server_info():
+	port("8080"),
+	max_body_size((size_t)-1)
 {}
 
 server_info::server_info(const server_info& other):
 	names(other.names),
 	error_pages(other.error_pages),
-	locations(other.locations)
+	locations(other.locations),
+	port(other.port),
+	cgi_paths(other.cgi_paths),
+	max_body_size(other.max_body_size)
 {}

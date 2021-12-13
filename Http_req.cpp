@@ -62,6 +62,7 @@ void Http_req::parse_body(void)
 	if (body_len > max_size)
 	{
 		status = PARSE_ERROR;
+		std::cout << "body len > MAX SIZE" << std::endl;
 		return ;
 	}
 	if (body_len == content_length) 								//(1)body length correct -> end
@@ -179,6 +180,8 @@ void Http_req::parse_method(void)
 	size_t pos_qm = uri.find('?');
 	if (pos_qm > pos_slash)
 		file_uri = uri.substr(pos_slash + 1, pos_qm - pos_slash - 1);
+	else if (pos_slash != uri.npos)
+		file_uri = uri.substr(pos_slash + 1, uri.npos);
 	if (pos_qm != uri.npos)
 		query_string = uri.substr(pos_qm + 1, uri.npos - pos_qm - 1);
 //	std::cout << "URI = " << uri << std::endl;	
@@ -246,19 +249,19 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		switch (status)
 		{
 			case PARSE_INIT:
-//			std::cout << "method" << std::endl;
+			std::cout << "method" << std::endl;
 				parse_method();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_HEAD:
-//			std::cout << "head" << std::endl;
+			std::cout << "head" << std::endl;
 				parse_head();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_BODY:
-//			std::cout << "body" << std::endl;
+			std::cout << "body" << std::endl;
 				parse_body();
 				break ;
 			default:

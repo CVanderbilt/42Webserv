@@ -28,7 +28,6 @@ private:
 	int								_server_fd;
 	size_t							_fd_count;
 	size_t							_fd_size;
-	int								_port;
 //	int								_max_client_size;
 	//std::vector<std::string>		_server_name;			//!!!
 	//std::vector<server_location>	_server_location;		//!!!
@@ -36,8 +35,9 @@ private:
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
-	std::map<std::string,std::string>	const *_cgi_paths;
-	std::vector<server_info>		_configurations;
+	//std::map<std::string,std::string>	const *_cgi_paths;
+	//std::vector<server_info>		_configurations;
+	server_info						_configuration;
 
 	void			accept_connection();
 	void			read_message(int i);
@@ -55,7 +55,6 @@ public:
 	void			server_start();
 	void			server_listen();
 
-	void			show();
 	void			addServer(server_config const& s);
 	int				getPort();
 

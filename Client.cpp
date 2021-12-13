@@ -5,12 +5,10 @@ Client::Client() :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(1000000),
+	_request(-1),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false),
 	_time_check(ft_now())
 {
-	_error_pages = NULL;
 }
 
 Client::Client(int fd) : 
@@ -18,12 +16,10 @@ Client::Client(int fd) :
 	_status(-1),
 	_response_sent(0),
 	_response_left(0),
-	_max_body_size(1000000),
+	_request(-1),
 	_stat_msg(StatusMessages()),
-	_is_CGI(false),
 	_time_check(ft_now())
 {
-	_error_pages = NULL;
 }
 
 Client::Client(Client const &copy) :
@@ -32,12 +28,11 @@ Client::Client(Client const &copy) :
 	_status(copy._status),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
-	_max_body_size(copy._max_body_size),
+	_request(copy._request),
 	_stat_msg(copy._stat_msg),
-	_is_CGI(copy._is_CGI),
-	_time_check(copy._time_check)
+	_time_check(copy._time_check),
+	_s(copy._s)
 {
-	_error_pages = NULL;
 } 
 
 int		Client::getFd() const
@@ -65,12 +60,7 @@ void	Client::getParseChunk(char *chunk, size_t bytes)
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
-	{
 		_status = 1;
-		_is_CGI = isCGI();
-//		std::cout << "isCGI = " << _is_CGI << std::endl;
-	}
-//	std::cout << _request << std::endl;
 }
 
 std::string	Client::getResponse()
@@ -98,17 +88,18 @@ void	Client::setResponseLeft(size_t left)
 	_response_left = left;
 }
 
-int		Client::ResponseStatus()
+int		Client::ResponseStatus(const server_location *s)
 {
 	/*TODO: completar con más codigos, como el 404...*/
+	if (!s)
+		return (_response_status = 404);
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		else if (_request.body.length() > _max_body_size)
+		if (_request.body.length() > _s->max_body_size)
 			return (_response_status = 413);
-		else
-			return (_response_status = 400);
+		return (_response_status = 400);
 	}
 	if (MethodAllowed() == false)
 		return (_response_status = 501);
@@ -129,28 +120,41 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
-	ResponseStatus();
-	if (_request.status == Http_req::PARSE_ERROR)
-		_response_status = 400;
-	else if (_request.method.compare("GET") == 0)
-		body = BuildGet();
-	else if (_request.method.compare("POST") == 0)
-		body = BuildPost();
-	else if (_request.method.compare("DELETE") == 0)
-		body = BuildDelete();
+	
+	const server_location *s = locationByUri(_request.uri, _s->locations);
+	ResponseStatus(s);
+	if (_response_status < 400)
+	{
+		if (s->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
+		{
+			_request.uri += "/";
+			_request.file_uri = "";
+		}
+		if (isCGI(s))
+			body = ExecuteCGI(s);
+		else if (_request.method.compare("GET") == 0)
+			body = BuildGet(s);
+		else if (_request.method.compare("POST") == 0)
+			body = BuildPost(s);
+		else if (_request.method.compare("DELETE") == 0)
+			body = BuildDelete(s);
+	}
 	if (_response_status >= 400)
 	{
 		std::cout << "attempt to respond with error page" << std::endl;
 		try
 		{
-			if (_error_pages->count(_response_status) > 0)
+			if (_s->error_pages.count(_response_status) > 0)
 			{
-				body = ExtractFile(_error_pages->find(_response_status)->second);
+				body = "\r\n" + ExtractFile(_s->error_pages.find(_response_status)->second);
 			}
 			else
 			{
-				std::cout << "error: " << _response_status << ", doesnt have html page" << std::endl;
-				body = "";
+				std::stringstream	stream;
+				stream << "\r\n<html>\n<body>\n<h1>";
+				stream << _response_status << " " << _stat_msg[_response_status];
+				stream << "</h1>\n</body>\n</html>";
+				body = stream.str();
 			}
 		}
 		catch(const std::exception& e)
@@ -160,14 +164,57 @@ void	Client::BuildResponse()
 			std::cerr << e.what() << '\n';
 		}
 	}
-	stream << BuildHeader(body.length());
-	stream << body;
+	stream << WrapHeader(body, s);
 	_response = stream.str();
-	std::cout << "_response = " << _response << std::endl;
 	_response_left = _response.length();
 }
 
+template<typename T>
+static void AddIfNotSet(std::string& headers, const std::string& header, const T& value)
+{
+	std::stringstream	stream;
+	stream << header << ":";
+	size_t pos = headers.find(stream.str());
+	if (pos == headers.npos)
+	{
+		std::cout << "adding " << header << ": " << value << std::endl;
+		stream << " " << value << "\r\n";
+		headers += stream.str();
+	}
+}
 
+std::string Client::WrapHeader(const std::string& msg, const server_location *s)
+{
+	std::stringstream	stream;
+	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status];
+	std::string headers = "";
+	std::string body = "";
+	size_t pos = msg.find("\r\n\r\n");
+	size_t pos2 = msg.find("\r\n");
+	pos = pos2 >= pos ? pos : pos2;
+
+	if (pos != msg.npos)
+	{
+		headers = msg.substr(0, pos + 2);
+		std::cout << "headers >" << headers << "<" << std::endl;
+		body = msg.substr(pos + 2, msg.npos);
+	}
+	AddIfNotSet(headers, "Content-type", setContentType());
+	AddIfNotSet(headers, "Content-Length", body.length());
+	AddIfNotSet(headers, "Date", getActualDate());
+	if (_request.method.compare("GET") == 0 && s != 0)
+		AddIfNotSet(headers, "Last-Modified", lastModified(s));
+	if (_response_status == 301)
+		AddIfNotSet(headers ,"Location", _redirect);
+	if (_response_status == 301)
+		AddIfNotSet(headers ,"Retry-After", 0);
+	else if (_response_status == 503)
+		AddIfNotSet(headers ,"Retry-After", 120);
+	AddIfNotSet(headers, "Server", "Webserv/0.9");
+	stream << headers << "\r\n" << body;
+	return (stream.str());
+}
+/*
 std::string	Client::BuildHeader(size_t size)
 {
 	std::stringstream	stream;
@@ -185,7 +232,7 @@ std::string	Client::BuildHeader(size_t size)
 		stream << "\r\n";
 	}
 	return (stream.str());
-}
+}*/
 
 std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
 {
@@ -222,32 +269,55 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 	return (ret);
 }
 
-std::string	Client::BuildGet()
+std::string Client::ExecuteCGI(const server_location *s)
 {
-	std::string	ret;
-
-	_response_status = 200;
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-	if (!s)
+	try
 	{
-		_response_status = 404;
+		if (_request.method.compare("DELETE") == 0)
+			throw 405 ;
+		std::string ret;
+		CGI cgi(&_request, s, _s);
+		ret = cgi.executeCGI();
+		size_t pos = ret.find("\r\n\r\n");
+		std::string headers = ret.substr(0, pos);
+		ret = ret.substr(pos + 1, ret.size() - pos - 1);
+		pos = headers.find("Status");
+		if (pos == headers.npos)
+			pos = headers.find("status");
+		if (pos != headers.npos)
+		{
+			headers = headers.substr(pos + 1);
+			pos = headers.find(':');
+			if (pos == headers.npos)
+				_response_status = 500;
+			else
+			{
+				headers = headers.substr(pos + 1, headers.npos);
+				pos = headers.find_first_not_of(' ');
+				headers = headers.substr(pos);
+				_response_status = std::atoi(headers.c_str());
+			}
+		}
+		return ("\r\n" + ret);
+	}
+	catch(int err)
+	{
+		_response_status = err >= 400 ? err : 500;
 		return ("");
 	}
-	std::cout << "s->redirect = " << s->redirect << std::endl;
-	if (_is_CGI)
-	{
-		CGI cgi(_request, s);
-		_response_cgi = cgi.executeCGI();
-		size_t pos = _response_cgi.find("\r\n\r\n");
-		if (pos != _response_cgi.npos)
-			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
-		return (ret);
-	}
-	else if (s->redirect != "")
+	
+}
+
+std::string	Client::BuildGet(const server_location *s)
+{
+	_response_status = 200;
+	
+//	std::cout << "s->redirect = " << s->redirect << std::endl;
+	if (s->redirect != "")
 	{
 		_response_status = 301;
 		_redirect = s->redirect;
-		return ("");
+		return ("\r\n");
 	}
 	else 
 	{
@@ -258,7 +328,7 @@ std::string	Client::BuildGet()
 				std::cout << "  -trying index: >" << s->root << *it << "<" << std::endl;
 				try
 				{
-					return (ExtractFile(s->root + *it));
+					return ("\r\n" + ExtractFile(s->root + *it));
 				}
 				catch(const std::exception& e)
 				{
@@ -269,7 +339,7 @@ std::string	Client::BuildGet()
 			if (s->autoindex)
 			{
 				std::cout << "Sending autoindex" << std::endl;
-				return (GetAutoIndex(s->root, s->path));
+				return ("\r\n" + GetAutoIndex(s->root, s->path));
 			}
 			_response_status = 404;
 			return ("");
@@ -278,7 +348,7 @@ std::string	Client::BuildGet()
 		{
 			try
 			{
-				return (ExtractFile(s->root + _request.file_uri));
+				return ("\r\n" + ExtractFile(s->root + _request.file_uri));
 			}
 			catch(const std::exception& e)
 			{
@@ -288,71 +358,60 @@ std::string	Client::BuildGet()
 		}
 	}
 	std::cout << "IT SHOULD NEVER GET HERE" << std::endl;
-	return (ret);
+	_response_status = 500;
+	return ("");
 }
 
-std::string	Client::BuildPost()
+std::string	Client::BuildPost(const server_location *s)
 {
-	std::string ret = "";
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-
 	_response_status = 200;
-	if (!s)
+	if (s->write_enabled)
 	{
-		_response_status = 404;
-		return (ret);
-	}
-	if (_is_CGI)
-	{
-		CGI cgi(_request, s);
-		_response_cgi = cgi.executeCGI();
-		size_t pos = _response_cgi.find("\r\n\r\n");
-		if (pos != _response_cgi.npos)
-			ret = _response_cgi.substr(pos + 4, _response_cgi.size() - pos - 4);
+		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
+			if (_request.mult_form_data[i].filename != "")
+			{
+				std::ofstream file;
+				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				file.open(_req_file.c_str());
+				if (file.is_open() && file.good())
+				{
+					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+					file.close();
+				}
+				else
+				{
+					_response_status = 500;
+				}
+			}
 	}
 	else
-	{
-		if (s->write_enabled)
-			for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-				if (_request.mult_form_data[i].filename != "")
-				{
-					std::ofstream file;
-					_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
-					file.open(_req_file.c_str());
-					if (file.is_open() && file.good())
-					{
-						file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
-						file.close();
-					}
-					else
-					{
-						_response_status = 500;
-						return (ret);
-					}
-				}
-	}
+		_response_status = 405;
 	std::cout << "========================================" << std::endl;
-	return (ret);
+	if (_response_status == 200)
+		return ("\r\n<html>\n<body>\n<h1>File uploaded correctly</h1>\n</body>\n</html>");
+	return ("\r\n");
 }
 
-std::string	Client::BuildDelete()
+std::string	Client::BuildDelete(const server_location *s)
 {
 	std::string	ret;
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-
 	_req_file = s->write_path + _request.uri;
-
 	_response_status = 200;
-	if (unlink(_req_file.c_str()) < 0)
+	if (s->write_enabled)
 	{
-		_response_status = 500;
-		if (errno == EACCES || errno == EPERM || errno == EROFS)
-			_response_status = 403;
-		return ("");
-	}
+		if (unlink(_req_file.c_str()) < 0)
+		{
+			_response_status = 500;
+			if (errno == EACCES || errno == EPERM || errno == EROFS)
+				_response_status = 403;
+			return ("");
+		}
 
-	ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
-	return (ret);
+		ret = "<html>\n<body>\n<h1>File deleted.</h1>\n</body>\n</html>";
+		return ("\r\n" + ret);
+	}
+	_response_status = 403;
+	return ("");
 }
 
 std::map<int, std::string>	Client::StatusMessages()
@@ -384,6 +443,7 @@ std::map<int, std::string>	Client::StatusMessages()
 void		Client::setServer(server_info *s)
 {
 	_s = s;
+	_request.max_size = s->max_body_size;
 }
 
 const Http_req&	Client::GetRequest()
@@ -393,12 +453,13 @@ const Http_req&	Client::GetRequest()
 
 void Client::reset()
 {
-	_request.initialize(this->_max_body_size);
+	_request.initialize(_s->max_body_size);
 	_response_sent = 0;
 	_response_left = 0;
+	_status = -1;
 }
 
-bool Client::isCGI()
+bool Client::isCGI(const server_location *s)
 {
 	std::string	str;
 	size_t		i;
@@ -410,7 +471,6 @@ bool Client::isCGI()
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
 //std::cout << "str = " << str << std::endl;
-	const server_location *s = locationByUri(_request.uri, *this->_s);
 	if(!s)
 		return false;
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
@@ -421,9 +481,81 @@ bool Client::isCGI()
 	}
 	return false;
 }
-bool Client::hasTimedOut()
+
+bool	Client::hasTimedOut()
 {
 	if (ft_now() - TIMEOUT >= _time_check)
 		return (true);
 	return (false);
+}
+
+std::string	Client::lastModified(const server_location *s)
+{
+	char			buffer[30];
+	struct stat		stats;
+	struct tm		*gm;
+	size_t			written;
+	std::string		path;
+
+//	std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Last Modified >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+
+	//const server_location *s = locationByUri(_request.uri, _s->locations);
+	if (s)
+	{
+//		std::cout << "_request.uri = " << _request.uri << std::endl;
+//		std::cout << "root = " << s->root << std::endl;
+		if (s->index.size() > 0)
+		{
+			for (size_t i = 0; i < s->index.size(); i++)
+			{
+				path = s->root + s->index[i];
+//		std::cout << "path = " << path << std::endl;
+//		std::cout << "exists = " << fileExists(path) << std::endl;
+				if (fileExists(path))
+					break;
+			}
+		}
+		else if (_request.file_uri != "")
+			path = s->root + "/" + _request.file_uri;
+//		std::cout << "path = " << path << std::endl;
+		if (stat(path.c_str(), &stats) == 0)
+		{
+			gm = gmtime(&stats.st_mtime);
+			if (gm)
+			{
+				written = strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gm);
+				if (written <= 0)
+					perror("strftime");
+			}
+		}
+	}
+	return (std::string(buffer));
+}
+
+std::string		Client::setContentType()
+{
+	std::string type;
+	std::string str;
+	size_t		i;
+	
+	str = _request.uri;
+//	std::cout << "<<<<<<<<<<<<<<<<prueba de content types>>>>>>>>>>>>>>>>" << std::endl;
+//	std::cout << "uri = " << str << std::endl;
+	if ((i = str.find_last_of(".")) != str.npos)
+		str = str.substr(i + 1, str.length() - i);
+	std::cout << "extension = " << str << std::endl;
+	if (str == "css")
+		type = "text/css";
+	else if (str == "js")
+		type = "application/javascript";
+	else if (str == "jpeg" || str == "jpg")
+		type = "image/jpeg";
+	else if (str == "png")
+		type = "image/png";
+	else if (str == "bmp")
+		type = "image/bmp";
+	else
+		type = "text/html";
+//	std::cout << "type = " << type << std::endl;
+	return (type);
 }
