@@ -16,11 +16,6 @@ const char *ConfigException::what(void) const throw()
 	return (this->_error.c_str());
 }
 
-/*
-*	Forms a string based on line, any comment int the line will
-*	be removed and any spaces and tabs at the end and the start will
-*	also be removed.
-*/
 std::string TrimLine(std::string line)
 {
 	std::string ret;
@@ -88,14 +83,6 @@ void location_config::parse_config(std::ifstream& file, std::string& ln)
 	throw ConfigException("EOF", "missing closing key (location block)");
 }
 
-/*
-*	This function parses a server block
-*	On each line:
-*	a closing key >}< means end of the block, another end means an error ocurred. (block not closed)
-*	else if the keyword location is present an attempt to parse a new location block is made.
-*	else if the line is >key some more values/words< another oprtion "key": "somo more values/words" is added.
-*	else bad format line error
-*/
 void server_config::parse_config(std::ifstream& file)
 {
 	std::string str;
@@ -120,9 +107,6 @@ void server_config::parse_config(std::ifstream& file)
 	throw ConfigException("EOF", "missing closing key (server block)");
 }
 
-/*
-*	This functions searchs parse a config file into a vector of server_config structs.
-*/
 std::vector<server_config> check_config(std::string config_file, std::map<std::string, std::string>	&cgi_exec_path)
 {
 	std::ifstream file(config_file.c_str());
@@ -153,10 +137,6 @@ std::vector<server_config> check_config(std::string config_file, std::map<std::s
 	return (ret);
 }
 
-/*
-*	Default constructor and copy constructor are needed in order to use maps made
-*	by those types.
-*/
 location_config::location_config()
 {}
 

@@ -42,6 +42,9 @@ class Http_req
 		int			_mfd_size;
 //		int			_content_size;
 
+		bool parse_uri(std::string& line, int eol);
+		void parse_key_value_pair(std::string& line);
+		void parse_loop(void);
 		void parse_method(void);
 		void parse_head(void);
 		void parse_body(void);

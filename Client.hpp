@@ -61,6 +61,10 @@ public:
 	void		setResponseLeft(size_t left);
 	int			ResponseStatus(const server_location *);
 	bool		MethodAllowed();
+	void		CheckCGIHeaders(std::string headers);
+	std::string	BuildError();
+	std::string	GetFile(const server_location *);
+	std::string	GetIndex(const server_location *);
 	std::string	BuildGet(const server_location *);
 	std::string	BuildPost(const server_location *);
 	std::string	BuildDelete(const server_location *);
