@@ -28,15 +28,10 @@ private:
 	int								_server_fd;
 	size_t							_fd_count;
 	size_t							_fd_size;
-//	int								_max_client_size;
-	//std::vector<std::string>		_server_name;			//!!!
-	//std::vector<server_location>	_server_location;		//!!!
 	sockaddr_in						_addr;
 	socklen_t						_addrlen;
 	pollfd 							*_pfds;
 	std::map<int, Client>			_clients;
-	//std::map<std::string,std::string>	const *_cgi_paths;
-	//std::vector<server_info>		_configurations;
 	server_info						_configuration;
 
 	void			accept_connection();
@@ -45,17 +40,17 @@ private:
 	void			del_from_pfds(int i);
 	void			close_fd_del_client(int i);
 	void			send_response(int i);
+	void			addServerConfig(server_config const& s);
+	void			addServerLocations(server_config const& s);
+	Server(){};
 
 public:
 
-	Server(void);
-	Server(int port);
-	Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path);
+	Server(server_config const& s, std::map<std::string, std::string> *cgi_exec_path);
+	Server(Server const &copy);
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();
-
-	void			addServer(server_config const& s);
 	int				getPort();
 
 	class ServerException : public std::exception

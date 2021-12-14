@@ -174,7 +174,7 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 	size_t pos = headers.find(stream.str());
 	if (pos == headers.npos)
 	{
-		std::cout << "adding " << header << ": " << value << std::endl;
+//		std::cout << "adding " << header << ": " << value << std::endl;
 		stream << " " << value << "\r\n";
 		headers += stream.str();
 	}
@@ -231,7 +231,6 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 		_response_status = 500;
 		return("");
 	}
-	std::cout << "d: " << d << std::endl;
 	ret += "<ul>";
 	while (1)
 	{
@@ -312,21 +311,18 @@ std::string	Client::GetFile(const server_location *s)
 
 std::string	Client::GetIndex(const server_location *s)
 {
+	std::string ret;
+
 	for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
-		{
-			try
-			{
-				return ("\r\n" + ExtractFile(s->root + *it));
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << s->root + *it << " not found" << std::endl;
-			}
-		}
-		if (s->autoindex)
-			return ("\r\n" + GetAutoIndex(s->root, s->path));
-		_response_status = 404;
-		return ("");
+	{
+		ret = ExtractFile(s->root + *it);
+		if (ret != "")
+			return ("\r\n" + ret);
+	}
+	if (s->autoindex)
+		return ("\r\n" + GetAutoIndex(s->root, s->path));
+	_response_status = 404;
+	return ("");
 }
 
 std::string	Client::BuildGet(const server_location *s)
@@ -473,6 +469,7 @@ std::string	Client::lastModified(const server_location *s)
 			path = s->root + s->index[i];
 			if (fileExists(path))
 				break;
+			path = s->root;
 		}
 	}
 	else if (_request.file_uri != "")
@@ -499,7 +496,6 @@ std::string		Client::setContentType()
 	str = _request.uri;
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i + 1, str.length() - i);
-	std::cout << "extension = " << str << std::endl;
 	if (str == "css")
 		type = "text/css";
 	else if (str == "js")
