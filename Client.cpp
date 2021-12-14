@@ -226,6 +226,12 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 
 	ret += "<h1>Index of" + directory + "</h1>";
 	d = opendir(directory.c_str());
+	if (!d)
+	{
+		_response_status = 500;
+		return("");
+	}
+	std::cout << "d: " << d << std::endl;
 	ret += "<ul>";
 	while (1)
 	{
