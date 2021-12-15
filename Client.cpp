@@ -448,7 +448,10 @@ bool Client::isCGI(const server_location *s)
 bool	Client::hasTimedOut()
 {
 	if (ft_now() - TIMEOUT >= _time_check)
+	{
+		_response_status = 408;
 		return (true);
+	}
 	return (false);
 }
 

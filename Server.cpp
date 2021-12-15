@@ -200,6 +200,7 @@ void	Server::server_listen()
 		else if (_pfds[i].fd != _server_fd && _clients[_pfds[i].fd].hasTimedOut())
 		{
 			std::cout << "fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
+			send_response(i);
 			close_fd_del_client(i);
 		}
 		else if (_pfds[i].revents & POLLIN)
