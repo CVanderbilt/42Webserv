@@ -231,12 +231,12 @@ void Http_req::parse_loop(void)
 		{
 			case PARSE_INIT:
 				parse_method();
-				if (_aux_buff.length() > 0 && status != PARSE_INIT)
+				if (_aux_buff.length() > 0 && status == PARSE_HEAD)
 					continue ;
 				break ;
 			case PARSE_HEAD:
 				parse_head();
-				if (_aux_buff.length() > 0 && status != PARSE_HEAD)
+				if (_aux_buff.length() > 0 && status == PARSE_BODY)
 					continue ;
 				break ;
 			case PARSE_BODY:
