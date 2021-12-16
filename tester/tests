@@ -1,0 +1,24 @@
+GET /documents/ HTTP/1.1
+Connection: close
+
+###
+S200 OK
+HContent-Length
+HContent-Type text/html
+### blablabla
+GET / HTTP/1.1
+Connection: close
+
+###
+S200 OK
+HContent-Length
+HContent-Type text/html
+### esto de aqui se salta, al acabar un bloque salta hasta el siguiente salto de linea
+POST / HTTP/1.1
+Connection: close
+
+###
+S405 Not Allowed
+HContent-Length
+HContent-Type text/html
+###
