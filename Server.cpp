@@ -73,6 +73,8 @@ void Server::addServerLocations(server_config const& s)
 		idx++;
 		_configuration.locations.resize(_configuration.locations.size() + 1);
 		_configuration.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		if (it->opts.count("root") == 0 && it->opts.count("redirection") == 0)
+			throw ServerException("Configuration", "Missing either root or redirection (one of them is mandatory inside location)");
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
