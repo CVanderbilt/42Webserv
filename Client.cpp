@@ -124,7 +124,7 @@ void	Client::BuildResponse()
 	std::stringstream	stream;
 	std::string			body;
 	
-	const server_location *s = locationByUri(_request.uri, _s->locations);
+	LPair lpair = locationByUri(_request.uri, _s->locations);
 	ResponseStatus(s);
 	if (_response_status < 400)
 	{
@@ -139,14 +139,14 @@ void	Client::BuildResponse()
 			_redirect = s->redirect;
 			body = "\r\n";
 		}
-		else if (isCGI(s))
-			body = ExecuteCGI(s);
+		else if (isCGI(lpair.first))
+			body = ExecuteCGI(lpair.first);
 		else if (_request.method.compare("GET") == 0)
-			body = BuildGet(s);
+			body = BuildGet(lpair);
 		else if (_request.method.compare("POST") == 0)
-			body = BuildPost(s);
+			body = BuildPost(lpair);
 		else if (_request.method.compare("DELETE") == 0)
-			body = BuildDelete(s);
+			body = BuildDelete(lpair);
 	}
 	if (_response_status >= 400)
 		body = BuildError();
@@ -314,9 +314,9 @@ std::string	Client::GetIndex(const server_location *s)
 	return ("");
 }
 
-std::string	Client::BuildGet(const server_location *s)
+std::string	Client::BuildGet(LPair& lpair)
 {
-	if (_request.file_uri == "")
+	if (lpair.second == "")
 		return (GetIndex(s));
 	return (GetFile(s));
 }
@@ -498,4 +498,53 @@ std::string		Client::setContentType()
 	else
 		type = "text/html";
 	return (type);
+}
+
+static size_t inPath(const std::string& path, const std::string& uri, size_t uri_len, size_t path_len)
+{
+	if (path_len > uri_len)
+		return (0);
+	for (size_t i = 0; i < path_len; i++)
+		if (path[i] != uri[i])
+			return (0);
+	return (path_len);
+}
+//const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
+{
+	size_t uri_len = rawuri.length();
+	size_t biggest_coincidence = 0;
+	LPair ret;
+
+	ret.first = NULL;
+	std::cout << "rawuri: >" << rawuri << "<" << std::endl;
+	for (size_t i = 0; i < locs.size(); i++)
+	{
+		size_t path_len = locs[i].path.length();
+		std::cout << "against path: >" << locs[i].path << "<" << std::endl;
+		size_t aux = inPath(locs[i].path, rawuri, uri_len, path_len);
+		std::cout << "aux: " << aux << " biggest coincidence: " << biggest_coincidence << std::endl;
+		if (aux > biggest_coincidence) //es un path válildo coincide hast aux
+		{
+			ret.first = &locs[i];
+			ret.second = "";
+			std::cout << "new best option" << std::endl;
+			biggest_coincidence = aux;
+			if (path_len == uri_len)
+			{
+				std::cout << "devuelve la location porq coinciden exactamente" << std::endl;
+				break ;
+			}
+			std::cout << "uri_len: " << uri_len << std::endl;
+			std::cout << "path: " << rawuri.substr(0, aux) << std::endl;
+			if (aux < uri_len)
+			{
+				ret.second = rawuri.substr(aux, std::string::npos);
+				std::cout << "rest: " << ret.second << std::endl;
+			}
+		}
+		else
+			std::cout << "discarded" << std::endl;
+	}
+	return (ret);
 }

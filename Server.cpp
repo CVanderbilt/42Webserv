@@ -32,7 +32,7 @@ void Server::addServerConfig(server_config const& s)
 {
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
-		if (it->first == "port" && isPort(it->second))
+		if (it->first == "port")
 			_configuration.port = it->second;
 		else if (it->first == "server_name")
 			_configuration.names = splitIntoVector(it->second, " ");
@@ -73,6 +73,10 @@ void Server::addServerLocations(server_config const& s)
 		idx++;
 		_configuration.locations.resize(_configuration.locations.size() + 1);
 		_configuration.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		if (_configuration.locations[idx].path.length() == 0)
+			throw ServerException("Configuration", "Location path cant be empty");
+		if (_configuration.locations[idx].path[0] != '/')
+			throw ServerException("Configuration", "Location path (" + _configuration.locations[idx].path + ") must start with /");
 		if (it->opts.count("root") == 0 && it->opts.count("redirection") == 0)
 			throw ServerException("Configuration", "Missing either root or redirection (one of them is mandatory inside location)");
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)

@@ -47,17 +47,6 @@ std::vector<std::string> splitIntoVector(std::string str, const std::string& sep
 	return (ret);
 }
 
-bool isPort(std::string p)
-{
-	for (size_t i = 0; i < p.size(); i++)
-		if (!std::isdigit(p[i]))
-			return (false);
-	int n = atoi(p.c_str());
-	if (n < 0 || n > 65535)
-		return (false);
-	return (true);
-}
-
 bool fileExists(std::string file)
 {
 	struct stat st;
@@ -81,61 +70,6 @@ std::string ExtractFile(std::string filename)
 		return contents.str();
 	}
 	return ("");
-}
-
-//	uri:	/locations/some_file
-//	path:	/locations
-//	
-bool checkUri(const std::string& path, const std::string& uri)
-{
-	size_t path_len = path.length();
-	size_t uri_len = uri.length();
-	for (size_t i = 0; i < path_len; i++)
-	{
-		if (i == uri_len || path[i] != uri[i])
-			return (false);
-	}
-	return (true);
-}
-/*
-static size_t equal_until(const std::string s1, const std::string s2)
-{
-	const char *a = s1.c_str();
-	const char *b = s2.c_str();
-	size_t i = 0;
-
-	while ((!a[i] || !b[i]) && a[i] != b[i])
-		i++;
-	return (i);
-}*/
-
-const server_location *locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-{
-	/*int arr[locs.size()];
-	//for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
-	for (int i = 0; i < locs.size(); i++)
-	{
-		arr[i] = equal_until(rawuri, locs[i].root);
-		//rawuri: /directory/directory/file
-		//num of elements (0, n): 3
-		//cuantos elementos en cada location, elegimos la location con más coincidencias
-		
-	}*/
-	std::string uri = rawuri.substr(0, rawuri.find('?'));
-	if (*(uri.end() - 1) != '/')
-	{
-		const server_location *s = locationByUri(uri + "/", locs);
-		if (s != NULL)
-			return (s);
-	}
-	size_t pos = uri.find_last_of('/');
-	if (pos == uri.npos)
-		return (NULL);
-	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
-	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
-		if (it->path == uri_directory)
-			return (&(*it));
-	return (NULL);
 }
 
 server_location::server_location():

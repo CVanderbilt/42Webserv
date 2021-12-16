@@ -36,6 +36,8 @@ private:
 	std::map<int, std::string>	*_error_pages;
 	server_info 				*_s;
 
+	typedef std::pair<const server_location*, std::string> LPair;
+
 	std::string		ExecuteCGI(const server_location *s);
 public:
 
@@ -58,9 +60,9 @@ public:
 	std::string	BuildError();
 	std::string	GetFile(const server_location *);
 	std::string	GetIndex(const server_location *);
-	std::string	BuildGet(const server_location *);
-	std::string	BuildPost(const server_location *);
-	std::string	BuildDelete(const server_location *);
+	std::string	BuildGet(LPair& lpair);
+	std::string	BuildPost(LPair& lpair);
+	std::string	BuildDelete(LPair& lpair);
 	std::string	BuildAutoindex();
 	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
 	std::string	WrapHeader(const std::string& msg, const server_location *);
@@ -71,4 +73,6 @@ public:
 	bool		hasTimedOut();
 	std::string	lastModified(const server_location *);
 	std::string	setContentType();
+	LPair locationByUri(const std::string& uri, const std::vector<server_location>& locs);
+
 };
