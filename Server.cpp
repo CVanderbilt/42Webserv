@@ -232,7 +232,7 @@ void	Server::server_listen()
 				close_fd_del_client(i);
 			else
 			{
-				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
+				std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
 				if (cnt != head_info.end() && cnt->second == "close")
 				{
 					std::cout << "Closing " << _pfds[i].fd << " beacuse was not keep alive" << std::endl;
