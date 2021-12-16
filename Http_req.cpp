@@ -200,23 +200,26 @@ void Http_req::parse_key_value_pair(std::string& line)
 void Http_req::parse_head(void)
 {
 	size_t eol = _aux_buff.find("\r\n");
-	if (eol == _aux_buff.npos)
-		return ;
-	std::string line = _aux_buff.substr(0, eol);
-	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);
-
-	if (eol != 0)
-		parse_key_value_pair(line);
-	else
+	while (eol != _aux_buff.npos)
 	{
-		status = PARSE_BODY;
-		content_length = 0;
-		if (head.count("Content-Length"))
-			content_length = std::atol(head["Content-Length"].c_str());
-		else if (head.count("content-length"))
-			content_length = std::atol(head["content-length"].c_str());
+		std::string line = _aux_buff.substr(0, eol);
+		_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);
+
+		if (eol != 0)
+			parse_key_value_pair(line);
 		else
-			status = PARSE_END;
+		{
+			status = PARSE_BODY;
+			content_length = 0;
+			if (head.count("Content-Length"))
+				content_length = std::atol(head["Content-Length"].c_str());
+			else if (head.count("content-length"))
+				content_length = std::atol(head["content-length"].c_str());
+			else
+				status = PARSE_END;
+			break ;
+		}
+		eol = _aux_buff.find("\r\n");
 	}
 }
 
@@ -228,12 +231,12 @@ void Http_req::parse_loop(void)
 		{
 			case PARSE_INIT:
 				parse_method();
-				if (_aux_buff.length() > 0)
+				if (_aux_buff.length() > 0 && status != PARSE_INIT)
 					continue ;
 				break ;
 			case PARSE_HEAD:
 				parse_head();
-				if (_aux_buff.length() > 0)
+				if (_aux_buff.length() > 0 && status != PARSE_HEAD)
 					continue ;
 				break ;
 			case PARSE_BODY:
