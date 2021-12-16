@@ -81,19 +81,26 @@ void CGI::childProcess(char **args, int &pipes_in)
 	char **env = vectorToEnv(_env_vec);
 
 	if (dup2(pipes_in, STDOUT) < 0)
-		throw 500;
+	{
+		std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+		exit(1);
+	}
 	if (_request->body.length() > 0)
 	{
 		_CGI_fd = open("./cgi.temp", O_RDONLY, 0);
 		if (dup2(_CGI_fd, STDIN))
-			throw 500;
+		{
+			std::cout << "Status: 500 Internal Server Error\r\n\r\n";
+			exit(1);
+		}
 	}
 	else
 		close(STDIN);
 	if (_request->body.length() > 0)
 		close(_CGI_fd);
 	if ((ret = execve(args[0], args, env)) < 0)
-		throw 500;
+		ret = 1;
+	std::cout << "Status: 500 Internal Server Error\r\n\r\n";
 	while (env[i])
 		free(env[i++]);
 	free(env);
