@@ -24,6 +24,9 @@ struct server_location
 	std::string							server_name;
 	std::string							port;
 	std::string							redirect;
+	bool								allow_get;
+	bool								allow_post;
+	bool								allow_delete;
 	server_location();
 	server_location(const server_location& other);
 };

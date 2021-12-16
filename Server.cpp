@@ -51,6 +51,20 @@ void Server::addServerConfig(server_config const& s)
 	}
 }
 
+static bool setAllowedMethods(server_location *s, const std::vector<std::string>& methods)
+{
+	for (std::vector<std::string>::const_iterator it = methods.begin(); it < methods.end(); it++)
+		if (!s->allow_get && *it == "GET")
+			s->allow_get = true;
+		else if (!s->allow_post && *it == "POST")
+			s->allow_post = true;
+		else if (!s->allow_delete && *it == "DELETE")
+			s->allow_delete = true;
+		else
+			return (false);
+	return (true);
+}
+
 void Server::addServerLocations(server_config const& s)
 {
 	int idx = -1;
@@ -81,6 +95,11 @@ void Server::addServerLocations(server_config const& s)
 			}
 			else if (lit->first == "redirection")
 				_configuration.locations[idx].redirect = lit->second;
+			else if (lit->first == "allow")
+			{
+				if (!setAllowedMethods(&_configuration.locations[idx], splitIntoVector(lit->second, " ")))
+					throw ServerException("Configuration", "Invalid allowed methods list >" + lit->second + "<");
+			}
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 		}

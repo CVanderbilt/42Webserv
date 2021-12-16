@@ -96,6 +96,10 @@ int		Client::ResponseStatus(const server_location *s)
 	_response_status = 200;
 	if (!s)
 		return (_response_status = 404);
+	if ( (_request.method == "GET" && !s->allow_get) ||
+		(_request.method == "POST" && !s->allow_post) ||
+		(_request.method == "DELETE" && !s->allow_delete) )
+		return (_response_status = 405);
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
@@ -291,7 +295,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 		if (pos == ret.npos)
 			throw 500 ;
 		CheckCGIHeaders(ret.substr(0, pos));
-		return ("\r\n" + ret);
+		return (ret);
 	}
 	catch(int err)
 	{

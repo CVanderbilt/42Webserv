@@ -118,7 +118,10 @@ const server_location *locationByUri(const std::string& rawuri, const std::vecto
 }
 
 server_location::server_location():
-	autoindex(false)
+	autoindex(false),
+	allow_get(false),
+	allow_post(false),
+	allow_delete(false)
 {}
 server_location::server_location(const server_location& other):
 	root(other.root),
@@ -127,7 +130,10 @@ server_location::server_location(const server_location& other):
 	cgi(other.cgi),
 	index(other.index),
 	write_enabled(other.write_enabled),
-	write_path(other.write_path)
+	write_path(other.write_path),
+	allow_get(other.allow_get),
+	allow_post(other.allow_post),
+	allow_delete(other.allow_delete)
 {}
 
 server_info::server_info():
