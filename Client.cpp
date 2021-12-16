@@ -89,6 +89,8 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus(const server_location *s)
 {
+	if (_response_status >= 400)
+		return (1);
 	_response_status = 200;
 	if (!s)
 		return (_response_status = 404);
@@ -195,7 +197,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 		headers = msg.substr(0, pos + 2);
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	AddIfNotSet(headers, "Content-type", setContentType());
+	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
 	if (_request.method.compare("GET") == 0 && s != 0)
