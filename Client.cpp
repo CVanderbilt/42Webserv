@@ -3,6 +3,7 @@
 Client::Client() : 
 	_fd(-1),
 	_status(-1),
+	_response_status(200),
 	_response_sent(0),
 	_response_left(0),
 	_request(-1),
@@ -14,6 +15,7 @@ Client::Client() :
 Client::Client(int fd) : 
 	_fd(fd),
 	_status(-1),
+	_response_status(200),
 	_response_sent(0),
 	_response_left(0),
 	_request(-1),
@@ -120,7 +122,7 @@ bool	Client::MethodAllowed()
 std::string	Client::BuildError()
 {
 	std::string body;
-	if (_s->error_pages.count(_response_status) > 0)
+	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
 		body = "\r\n" + str;
@@ -227,7 +229,12 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 	d = opendir(directory.c_str());
 	if (!d)
 	{
-		_response_status = 500;
+		if (errno == EACCES)
+			_response_status = 403;
+		else if (errno == ENOENT)
+			_response_status = 404;
+		else
+			_response_status = 500;
 		return("");
 	}
 	ret += "<ul>";
@@ -284,7 +291,6 @@ std::string Client::ExecuteCGI(const server_location *s)
 		if (pos == ret.npos)
 			throw 500 ;
 		CheckCGIHeaders(ret.substr(0, pos));
-		ret = ret.substr(pos + 4, ret.npos);
 		return ("\r\n" + ret);
 	}
 	catch(int err)
@@ -423,6 +429,7 @@ void Client::reset()
 	_response_sent = 0;
 	_response_left = 0;
 	_status = -1;
+	_response_status = 200;
 }
 
 bool Client::isCGI(const server_location *s)

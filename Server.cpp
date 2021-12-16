@@ -90,7 +90,7 @@ void Server::addServerLocations(server_config const& s)
 void	Server::server_start()
 {
 	if ((_server_fd = socket(PF_INET, SOCK_STREAM, 0)) == 0)
-		throw ServerException("In accept", "failed for some reason");
+		throw ServerException("In socket", "failed for some reason");
 	if ((fcntl(_server_fd, F_SETFL, O_NONBLOCK)) == -1)
 	{
 		close (_server_fd);
