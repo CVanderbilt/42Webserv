@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html>
+    <head lang="en">
+		<meta charset="UTF-8">
+        <title>Formulario</title>
+    </head>
 <body>
 
 <h1>Testing PHP CGI with POST method</h1>
 
 <form action="/CGIs/hello_form.php" method="post">
-  <label for="fname">First name:</label>
-  <input type="text" id="fname" name="fname"><br><br>
-  <label for="lname">Last name:</label>
-  <input type="text" id="lname" name="lname"><br><br>
-  <input type="submit" value="Submit">
+    <p>Su nombre: <input type="text" name="nombre" id="nombre" /></p>
+		<p>Su edad: <input type="text" name="edad" id="edad"/></p>
+		<p><input type="submit" /></p>
 </form>
-
-<p>Click the "Submit" button and the form-data will be sent to a page on the 
-server called "hello_form.php".</p>
 
 </body>
 </html>

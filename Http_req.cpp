@@ -3,12 +3,6 @@
 #include <unistd.h>
 #include <limits>
 
-/*
-*	returns a std::string containing the next line.
-*	empty lines are returned as empty strings.
-*	when ended it will return null.
-*/
-
 Http_req::Http_req(size_t max_size_body)
 {
 	initialize(max_size_body);
@@ -50,11 +44,6 @@ std::string Http_req::status_to_str(parsing_status st)
 	return ("parsing body");
 }
 
-/*
-*	This function add the content of _aux_buff into body up to
-*	content_length bytes, when end 1 is returned, otherwise
-*	0 is returned.
-*/
 void Http_req::parse_body(void)
 {
 	size_t body_len = body.length();
@@ -62,26 +51,20 @@ void Http_req::parse_body(void)
 	if (body_len > max_size)
 	{
 		status = PARSE_ERROR;
-		std::cout << "body len > MAX SIZE" << std::endl;
 		return ;
 	}
 	if (body_len == content_length) 								//(1)body length correct -> end
 			status = PARSE_END;
 	else if (body_len > content_length) 							//(2)body length greater than expected -> trim -> end
 	{
-		std::cout << "body len > content_length" << std::endl;
 		std::string aux_str = body.substr(content_length, _aux_buff.npos);
 		aux_str.append(_aux_buff, 0, _aux_buff.length());
 		_aux_buff = aux_str;
-		//creo que esto estaba mal(lo que hay comentado debajo), los bytes sobrantes no se meterían al final del buffer si no al principio,
-		//_aux_buff += body.substr(content_length, _aux_buff.npos);	//removed chars from body added to buffer
 		body = body.substr(0, content_length);
 	}
 	else if (_aux_buff.length() + body_len >= content_length) 		//(3)body length + buff greater or equal
 	{																//  than expected add until body length correct
-		std::cout << "aux + bodylen >= content_length" << std::endl;
 		body.append(_aux_buff, 0, content_length - body_len);
-		//body += _aux_buff.substr(0, content_length - body_len);
 		_aux_buff = _aux_buff.substr(content_length - body_len, _aux_buff.npos);
 	}
 	else															//(4)body + buff < expected -> simple addition
@@ -144,37 +127,17 @@ void Http_req::parse_body_multiform(void)
 				break;
 			}
 			mult_form_data[_mfd_size - 1].body.append(line, 0, line.length()).append("\n", 0, 1);
-	//		mult_form_data[_mfd_size - 1].body += line + "\n";
 		}
 	}
 	if (status != PARSE_END)
 		status = PARSE_ERROR;
 }
 
-void Http_req::parse_method(void)
+bool Http_req::parse_uri(std::string& line, int eol)
 {
-	size_t eol = _aux_buff.find("\r\n");
-	if (eol == _aux_buff.npos)
-		return ;
-	std::string line = _aux_buff.substr(0, eol);			//first line from chundk
-	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
-			
-	eol = line.find(" ");
-	status = PARSE_HEAD;
-	if (eol == _aux_buff.npos)
-	{
-		status = PARSE_ERROR;
-		return ;
-	}
-	method = line.substr(0, eol);
-	
-	line[eol] = '.';
 	size_t sep = line.find(" ");
 	if (sep == _aux_buff.npos)
-	{
-		status = PARSE_ERROR;
-		return ;
-	}
+		return (false);
 	uri = line.substr(eol + 1, sep - eol - 1);
 	size_t pos_slash = uri.find_last_of('/');
 	size_t pos_qm = uri.find('?');
@@ -184,48 +147,43 @@ void Http_req::parse_method(void)
 		file_uri = uri.substr(pos_slash + 1, uri.npos);
 	if (pos_qm != uri.npos)
 		query_string = uri.substr(pos_qm + 1, uri.npos - pos_qm - 1);
-//	std::cout << "URI = " << uri << std::endl;	
-//	std::cout << "URI_FILE = " << file_uri << std::endl;	
-//	std::cout << "QUERY STRING = " << query_string << std::endl;	
 	protocol = line.substr(sep + 1, line.npos);
-	if (protocol != "HTTP/1.1")
-		status = PARSE_ERROR;
+	return (true);
 }
 
-void Http_req::parse_head(void)
+void Http_req::parse_method(void)
 {
 	size_t eol = _aux_buff.find("\r\n");
 	if (eol == _aux_buff.npos)
 		return ;
-	std::string line = _aux_buff.substr(0, eol);			//first line from chundk
-	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);	//first line substracted from chunk
-
-	if (eol == 0) //empty line -> head completed
-	{
-		status = PARSE_BODY;
-		content_length = 0;
-		if (head.count("Content-Length"))
-			content_length = std::atol(head["Content-Length"].c_str());
-		else if (head.count("content-length"))
-			content_length = std::atol(head["content-length"].c_str());
-		else
-			status = PARSE_END;
+	std::string line = _aux_buff.substr(0, eol);
+	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);
+			
+	eol = line.find(" ");
+	status = PARSE_ERROR;
+	if (eol == _aux_buff.npos || eol == 0)
 		return ;
-	}
-	/*
-	*	Processing key:value header pair
-	*/
-	eol = line.find(":");
-	if (eol == line.npos)	//key:value pair not correctly formatted -> error
+	method = line.substr(0, eol);
+	
+	line[eol] = '.';
+	if (!parse_uri(line, eol) || protocol != "HTTP/1.1")
+		return ;
+	status = PARSE_HEAD;
+}
+
+void Http_req::parse_key_value_pair(std::string& line)
+{
+	size_t eol = line.find(":");
+	if (eol == line.npos)
 	{
 		status = PARSE_ERROR;
 		return ;
 	}
-	std::string key = line.substr(0, eol);	//key
+	std::string key = line.substr(0, eol);
 	while (isspace(line[eol + 1]))
 		eol++;
-	line = line.substr(eol + 1, line.npos);	//value
-	if (head.count(key))	//key already exists
+	line = line.substr(eol + 1, line.npos);
+	if (head.count(key))
 		head[key] = line.empty() ? head[key] : head[key] + ", " + line;
 	else
 		head[key] = line;
@@ -238,30 +196,46 @@ void Http_req::parse_head(void)
 	}
 }
 
-Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
+void Http_req::parse_head(void)
 {
-	if (status == PARSE_ERROR || status == PARSE_END)
-		return status;
-	_aux_buff.append(chunk, bytes);
+	size_t eol = _aux_buff.find("\r\n");
+	if (eol == _aux_buff.npos)
+		return ;
+	std::string line = _aux_buff.substr(0, eol);
+	_aux_buff = _aux_buff.substr(eol + 2, _aux_buff.npos);
 
+	if (eol != 0)
+		parse_key_value_pair(line);
+	else
+	{
+		status = PARSE_BODY;
+		content_length = 0;
+		if (head.count("Content-Length"))
+			content_length = std::atol(head["Content-Length"].c_str());
+		else if (head.count("content-length"))
+			content_length = std::atol(head["content-length"].c_str());
+		else
+			status = PARSE_END;
+	}
+}
+
+void Http_req::parse_loop(void)
+{
 	while(status != PARSE_ERROR && status != PARSE_END)
 	{
 		switch (status)
 		{
 			case PARSE_INIT:
-			std::cout << "method" << std::endl;
 				parse_method();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_HEAD:
-			std::cout << "head" << std::endl;
 				parse_head();
 				if (_aux_buff.length() > 0)
 					continue ;
 				break ;
 			case PARSE_BODY:
-			std::cout << "body" << std::endl;
 				parse_body();
 				break ;
 			default:
@@ -269,39 +243,21 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		}
 		break ;
 	}
-	if (status == PARSE_END && body != "" && (head["Content-Type"] == "multipart/form-data" || head["content-type"] == "multipart/form-data"))
+}
+
+Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
+{
+	if (status == PARSE_ERROR || status == PARSE_END)
+		return status;
+	_aux_buff.append(chunk, bytes);
+
+	parse_loop();	
+	if (status == PARSE_END && body != "" &&
+		(head["Content-Type"] == "multipart/form-data" ||
+		head["content-type"] == "multipart/form-data"))
 	{
 		status = PARSE_BODY;
 		parse_body_multiform();
-		std::cout << "body size = " << body.length() << std::endl;
-	//	std::cout << "body mdf size = " << mult_form_data[0].body.length() << std::endl;
 	}
 	return (status);
-}
-
-std::ostream&   operator<<(std::ostream& os, const Http_req& obj)
-{
-	os << "Method: " << obj.method << ", uri: " << obj.uri << ", protocol: " << obj.protocol << std::endl;
-	os << "Head:" << std::endl;
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = obj.head.begin();
-		it != obj.head.end();
-		it++)
-		os << it->first << ":" << it->second << std::endl;
-	os << "Body:" << std::endl;
-	os << obj.body << std::endl;
-/*	if (obj.head.find("content-type")->second == "multipart/form-data")
-	{
-		os << std::endl << "XXXXXXXXXXXXXXXXXXXXX     Multipart/form-data   XXXXXXXXXXXXXXXXXXXXXXXX" << std::endl;
-		os << "vector mfd size = " << obj.mult_form_data.size() << std::endl;
-		for (size_t i = 0; i < obj.mult_form_data.size(); i++)
-		{
-			os << "content_disposition:" << obj.mult_form_data[i].content_disposition << std::endl;
-			os << "content_type:" << obj.mult_form_data[i].content_type << std::endl;
-			os << "name:" << obj.mult_form_data[i].name << std::endl;
-			os << "filename:" << obj.mult_form_data[i].filename << std::endl;
-			os << "body:" << obj.mult_form_data[i].body << std::endl << std::endl;
-		}
-	}
-*/	return (os);
 }

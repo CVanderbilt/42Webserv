@@ -20,16 +20,17 @@
 class CGI
 {
 	private:
-		const server_location *_serv_loc;
-		Http_req			*_request;
-		std::string			_path_cgi;
-		std::string			_name_cgi;
-		std::string			_response_cgi;
-		int					_CGI_fd;
+		const server_location	*_serv_loc;
+		Http_req				*_request;
+		std::string				_path_cgi;
+		std::string				_name_cgi;
+		std::string				_response_cgi;
+		int						_CGI_fd;
 		std::vector<std::string> _env_vec;
+		const server_info		*_info;
+		char					**_args;
 
 		std::vector<std::string> envToVector(char **env);
-		const server_info	*_info;
 		char	**vectorToEnv(std::vector<std::string> env_vector);
 		void	childProcess(char **args, int &pipe_in);
 		void	parentProcess(int &pipe_out);
@@ -38,7 +39,7 @@ class CGI
 	public:
 		CGI();
 		CGI(Http_req *request, const server_location *s, const server_info *info);
-		~CGI(){};
+		~CGI();
 		CGI(CGI const &copy);
 
 		std::string	executeCGI();
