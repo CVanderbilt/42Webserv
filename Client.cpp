@@ -118,14 +118,12 @@ bool	Client::MethodAllowed()
 std::string	Client::BuildError()
 {
 	std::string body;
-	try
-	{
-		if (_s->error_pages.count(_response_status) > 0)
-			body = "\r\n" + ExtractFile(_s->error_pages.find(_response_status)->second);
-		else
-			throw std::exception();
+	if (_s->error_pages.count(_response_status) > 0)
+	{	
+		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
+		body = "\r\n" + str;
 	}
-	catch(const std::exception& e)
+	else
 	{
 		std::stringstream	stream;
 		stream << "\r\n<html>\n<body>\n<h1>";
@@ -174,7 +172,6 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 	size_t pos = headers.find(stream.str());
 	if (pos == headers.npos)
 	{
-//		std::cout << "adding " << header << ": " << value << std::endl;
 		stream << " " << value << "\r\n";
 		headers += stream.str();
 	}
@@ -298,15 +295,11 @@ std::string Client::ExecuteCGI(const server_location *s)
 
 std::string	Client::GetFile(const server_location *s)
 {
-	try
-	{
-		return ("\r\n" + ExtractFile(s->root + _request.file_uri));
-	}
-	catch(const std::exception& e)
-	{
-		_response_status = 404;
-		return ("");
-	}
+	std::string ret = ExtractFile(s->root + _request.file_uri);
+	if (ret != "")
+		return ("\r\n" + ret);
+	_response_status = 404;
+	return (ret);
 }
 
 std::string	Client::GetIndex(const server_location *s)

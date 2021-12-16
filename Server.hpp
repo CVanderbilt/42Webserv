@@ -1,11 +1,11 @@
 #pragma once
 
-#include <sys/socket.h> // For socket functions
-#include <netinet/in.h> // For sockaddr_in
-#include <cstdlib> // For exit() and EXIT_FAILURE
-#include <fstream> // For files
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <cstdlib>
+#include <fstream>
 #include <iostream> 
-#include <unistd.h> // For read
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <poll.h>
 #include <fcntl.h>
@@ -14,7 +14,6 @@
 #include <map>
 #include "Http_req.hpp"
 #include "Client.hpp"
-#include <utility>
 #include "Config.hpp"
 #include "utils.hpp"
 

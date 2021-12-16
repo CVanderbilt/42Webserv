@@ -9,11 +9,9 @@
 # include <sstream>
 # include "Config.hpp"
 # include <cstdlib>
-#include <stdint.h>
+# include <stdint.h>
 
-/*
-*	Will have to move to its own file.
-*/
+# define PRINT_MODE
 struct server_location 
 {
 	std::string							root; //is the path to the files that are mapped to the uri of the browser

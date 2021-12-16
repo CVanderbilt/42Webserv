@@ -64,7 +64,6 @@ void Http_req::parse_body(void)
 	}
 	else if (_aux_buff.length() + body_len >= content_length) 		//(3)body length + buff greater or equal
 	{																//  than expected add until body length correct
-		std::cout << "aux + bodylen >= content_length" << std::endl;
 		body.append(_aux_buff, 0, content_length - body_len);
 		_aux_buff = _aux_buff.substr(content_length - body_len, _aux_buff.npos);
 	}

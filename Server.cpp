@@ -144,11 +144,15 @@ void	Server::accept_connection()
 		new_client.setServer(&_configuration);
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
+#ifdef PRINT_MODE
 		std::cout << "server: new connection on socket " << new_fd << std::endl;
+#endif
 	}
 	else
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: connection not accepted" << std::endl;
+#endif
 		/*TODO: send response to the client rejecting connection */
 		close(new_fd);
 	}
@@ -161,12 +165,14 @@ void	Server::read_message(int i)
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-		close_fd_del_client(i); //todo  msg
+		close_fd_del_client(i);
 		perror("server:recv");
 	}
 	else if (numbytes == 0)
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: client " << _pfds[i].fd << " closed connection" << std::endl;
+#endif
 		close_fd_del_client(i);
 	}
 	else
@@ -174,7 +180,9 @@ void	Server::read_message(int i)
 		buffer[numbytes] = '\0'; //falso ?
 		if (_clients.count(_pfds[i].fd))
 			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
+#ifdef PRINT_MODE
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
+#endif
 	}
 	delete[] buffer;
 }
@@ -193,17 +201,17 @@ void	Server::server_listen()
 			_pfds[i].fd = -1;
 		else if (_pfds[i].fd != _server_fd && _clients[_pfds[i].fd].hasTimedOut())
 		{
+#ifdef PRINT_MODE
 			std::cout << "server: fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
+#endif
 			close_fd_del_client(i);
 		}
 		else if (_pfds[i].revents & POLLIN)
 		{
-			std::cout << ">>>>>>>>>INCOMING CONNECTION<<<<<<<<<" << std::endl;
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
 				read_message(i);
-			std::cout << ">>>>>>>>>INCOMING CONNECTION PROCESSED<<<<<<<<<" << std::endl << std::endl;
 		}
 		else if(_pfds[i].revents & POLLOUT)
 		{
@@ -218,7 +226,6 @@ void	Server::server_listen()
 				else
 					continue;
 			}
-			std::cout << "<<<<<<<<<READY TO ANSWER>>>>>>>>>" << std::endl;
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
 				close_fd_del_client(i);
@@ -230,7 +237,6 @@ void	Server::server_listen()
 				else
 					_clients[_pfds[i].fd].reset();
 			}
-			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
 		}
 		if(_pfds[i].fd == -1)
 		{
@@ -277,16 +283,24 @@ void	Server::send_response(int i)
 	_clients[_pfds[i].fd].BuildResponse();
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
 	if ((val_sent < 0))
+	{
+#ifdef PRINT_MODE
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
+#endif
+	}
 	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: partial response sent on socket" << std::endl;
+#endif
 		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
 		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
 	}
 	else
 	{
-		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl << std::endl;
+#ifdef PRINT_MODE
+		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
+#endif
 		_clients[_pfds[i].fd].getResponse().clear();
 	}
 }
