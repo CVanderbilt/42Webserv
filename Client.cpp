@@ -133,7 +133,13 @@ void	Client::BuildResponse()
 			_request.uri += "/";
 			_request.file_uri = "";
 		}
-		if (isCGI(s))
+		if (s->redirect != "")
+		{
+			_response_status = 301;
+			_redirect = s->redirect;
+			body = "\r\n";
+		}
+		else if (isCGI(s))
 			body = ExecuteCGI(s);
 		else if (_request.method.compare("GET") == 0)
 			body = BuildGet(s);
@@ -183,9 +189,10 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	if (_request.method.compare("GET") == 0 && s != 0)
 		AddIfNotSet(headers, "Last-Modified", lastModified(s));
 	if (_response_status == 301)
+	{
 		AddIfNotSet(headers ,"Location", _redirect);
-	if (_response_status == 301)
 		AddIfNotSet(headers ,"Retry-After", 0);
+	}
 	else if (_response_status == 503)
 		AddIfNotSet(headers ,"Retry-After", 120);
 	AddIfNotSet(headers, "Server", "Webserv/0.9");
@@ -309,12 +316,6 @@ std::string	Client::GetIndex(const server_location *s)
 
 std::string	Client::BuildGet(const server_location *s)
 {
-	if (s->redirect != "")
-	{
-		_response_status = 301;
-		_redirect = s->redirect;
-		return ("\r\n");
-	}
 	if (_request.file_uri == "")
 		return (GetIndex(s));
 	return (GetFile(s));

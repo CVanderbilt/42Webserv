@@ -97,9 +97,30 @@ bool checkUri(const std::string& path, const std::string& uri)
 	}
 	return (true);
 }
+/*
+static size_t equal_until(const std::string s1, const std::string s2)
+{
+	const char *a = s1.c_str();
+	const char *b = s2.c_str();
+	size_t i = 0;
+
+	while ((!a[i] || !b[i]) && a[i] != b[i])
+		i++;
+	return (i);
+}*/
 
 const server_location *locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
 {
+	/*int arr[locs.size()];
+	//for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
+	for (int i = 0; i < locs.size(); i++)
+	{
+		arr[i] = equal_until(rawuri, locs[i].root);
+		//rawuri: /directory/directory/file
+		//num of elements (0, n): 3
+		//cuantos elementos en cada location, elegimos la location con más coincidencias
+		
+	}*/
 	std::string uri = rawuri.substr(0, rawuri.find('?'));
 	if (*(uri.end() - 1) != '/')
 	{

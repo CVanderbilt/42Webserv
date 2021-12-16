@@ -8,13 +8,6 @@
 #include <cstdlib>
 #include <cstdio>
 
-typedef enum http_parse_err
-{
-	ERR_HTTP_FATAL = -100,
-	ERR_HTTP_EXTRA,
-	ERR_HTTP_HEAD,
-	ERR_HTTP_BODY
-}	t_http_parse_err;
 
 struct Mult_Form_Data
 {
@@ -55,6 +48,7 @@ class Http_req
 		parsing_status 						status;
 		std::string							method;
 		std::string							uri;
+		//std::string							file_uri;
 		std::string							file_uri;
 		std::string							query_string;
 		std::string							protocol;
