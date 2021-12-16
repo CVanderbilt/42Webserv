@@ -4,7 +4,7 @@ OBJS_PATH = objs/
 
 #--------------------Files-----------------------------#
 
-SRCS =	config_main.cpp\
+SRCS =	main.cpp\
 		Server.cpp\
 		Client.cpp\
 		Http_req.cpp\

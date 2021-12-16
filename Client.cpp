@@ -3,6 +3,7 @@
 Client::Client() : 
 	_fd(-1),
 	_status(-1),
+	_response_status(200),
 	_response_sent(0),
 	_response_left(0),
 	_request(-1),
@@ -14,6 +15,7 @@ Client::Client() :
 Client::Client(int fd) : 
 	_fd(fd),
 	_status(-1),
+	_response_status(200),
 	_response_sent(0),
 	_response_left(0),
 	_request(-1),
@@ -120,14 +122,12 @@ bool	Client::MethodAllowed()
 std::string	Client::BuildError()
 {
 	std::string body;
-	try
-	{
-		if (_s->error_pages.count(_response_status) > 0)
-			body = "\r\n" + ExtractFile(_s->error_pages.find(_response_status)->second);
-		else
-			throw std::exception();
+	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
+	{	
+		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
+		body = "\r\n" + str;
 	}
-	catch(const std::exception& e)
+	else
 	{
 		std::stringstream	stream;
 		stream << "\r\n<html>\n<body>\n<h1>";
@@ -176,7 +176,6 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 	size_t pos = headers.find(stream.str());
 	if (pos == headers.npos)
 	{
-		std::cout << "adding " << header << ": " << value << std::endl;
 		stream << " " << value << "\r\n";
 		headers += stream.str();
 	}
@@ -228,6 +227,16 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 
 	ret += "<h1>Index of" + directory + "</h1>";
 	d = opendir(directory.c_str());
+	if (!d)
+	{
+		if (errno == EACCES)
+			_response_status = 403;
+		else if (errno == ENOENT)
+			_response_status = 404;
+		else
+			_response_status = 500;
+		return("");
+	}
 	ret += "<ul>";
 	while (1)
 	{
@@ -282,7 +291,6 @@ std::string Client::ExecuteCGI(const server_location *s)
 		if (pos == ret.npos)
 			throw 500 ;
 		CheckCGIHeaders(ret.substr(0, pos));
-		ret = ret.substr(pos + 4, ret.npos);
 		return ("\r\n" + ret);
 	}
 	catch(int err)
@@ -295,34 +303,27 @@ std::string Client::ExecuteCGI(const server_location *s)
 
 std::string	Client::GetFile(const server_location *s)
 {
-	try
-	{
-		return ("\r\n" + ExtractFile(s->root + _request.file_uri));
-	}
-	catch(const std::exception& e)
-	{
-		_response_status = 404;
-		return ("");
-	}
+	std::string ret = ExtractFile(s->root + _request.file_uri);
+	if (ret != "")
+		return ("\r\n" + ret);
+	_response_status = 404;
+	return (ret);
 }
 
 std::string	Client::GetIndex(const server_location *s)
 {
+	std::string ret;
+
 	for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
-		{
-			try
-			{
-				return ("\r\n" + ExtractFile(s->root + *it));
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << s->root + *it << " not found" << std::endl;
-			}
-		}
-		if (s->autoindex)
-			return ("\r\n" + GetAutoIndex(s->root, s->path));
-		_response_status = 404;
-		return ("");
+	{
+		ret = ExtractFile(s->root + *it);
+		if (ret != "")
+			return ("\r\n" + ret);
+	}
+	if (s->autoindex)
+		return ("\r\n" + GetAutoIndex(s->root, s->path));
+	_response_status = 404;
+	return ("");
 }
 
 std::string	Client::BuildGet(const server_location *s)
@@ -428,6 +429,7 @@ void Client::reset()
 	_response_sent = 0;
 	_response_left = 0;
 	_status = -1;
+	_response_status = 200;
 }
 
 bool Client::isCGI(const server_location *s)
@@ -472,6 +474,7 @@ std::string	Client::lastModified(const server_location *s)
 			path = s->root + s->index[i];
 			if (fileExists(path))
 				break;
+			path = s->root;
 		}
 	}
 	else if (_request.file_uri != "")
@@ -498,7 +501,6 @@ std::string		Client::setContentType()
 	str = _request.uri;
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i + 1, str.length() - i);
-	std::cout << "extension = " << str << std::endl;
 	if (str == "css")
 		type = "text/css";
 	else if (str == "js")
@@ -507,6 +509,8 @@ std::string		Client::setContentType()
 		type = "image/jpeg";
 	else if (str == "png")
 		type = "image/png";
+	else if (str == "pdf")
+		type = "application/pdf";
 	else if (str == "bmp")
 		type = "image/bmp";
 	else

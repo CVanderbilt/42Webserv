@@ -1,37 +1,38 @@
 #include "Server.hpp"
 #include "utils.hpp"
-/*
-Server::Server() :
-	_fd_size(2),
-	_port(8080),
-	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size])
-{}
-
-Server::Server(int port) :
-	_fd_size(2),
-	_port(port),
-	_addrlen(sizeof(_addr)),
-	_pfds(new pollfd[_fd_size])
-{}*/
 
 Server::Server(server_config const& s, std::map<std::string, std::string>	*cgi_exec_path) :
+	_server_fd(-1),
+	_fd_count(0),
 	_fd_size(2),
 	_addrlen(sizeof(_addr)),
 	_pfds(new pollfd[_fd_size])
 {
-	//_cgi_paths->count(".py");
-	addServer(s);
+	addServerConfig(s);
+	addServerLocations(s);
 	_configuration.cgi_paths = cgi_exec_path;
+	_addr.sin_family = AF_INET;
+	_addr.sin_port = htons(std::atoi(_configuration.port.c_str()));
+	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 }
 
-void Server::addServer(server_config const& s)
+Server::Server(Server const &copy):
+	_server_fd(copy._server_fd),
+	_fd_count(copy._fd_count),
+	_fd_size(copy._fd_size),
+	_addr(copy._addr),
+	_addrlen(copy._addrlen),
+	_pfds(copy._pfds),
+	_clients(copy._clients),
+	_configuration(copy._configuration)
+{}
+
+void Server::addServerConfig(server_config const& s)
 {
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
 		if (it->first == "port" && isPort(it->second))
-			//_port = std::atoi(it->second.c_str());
-			//_configuration.port = std::atoi(it->second.c_str());
 			_configuration.port = it->second;
 		else if (it->first == "server_name")
 			_configuration.names = splitIntoVector(it->second, " ");
@@ -48,7 +49,10 @@ void Server::addServer(server_config const& s)
 		else
 			throw ServerException("Configuration", "Invalid key in server block: >" + it->first + "<");
 	}
+}
 
+void Server::addServerLocations(server_config const& s)
+{
 	int idx = -1;
 	for (std::vector<location_config>::const_iterator it = s.loc.begin(); it != s.loc.end(); ++it)
 	{
@@ -86,16 +90,12 @@ void Server::addServer(server_config const& s)
 void	Server::server_start()
 {
 	if ((_server_fd = socket(PF_INET, SOCK_STREAM, 0)) == 0)
-		throw ServerException("In accept", "failed for some reason");
+		throw ServerException("In socket", "failed for some reason");
 	if ((fcntl(_server_fd, F_SETFL, O_NONBLOCK)) == -1)
 	{
 		close (_server_fd);
 		throw ServerException("In fcntl", "failed for some reason");
 	}
-	_addr.sin_family = AF_INET;
-	_addr.sin_port = htons(std::atoi(_configuration.port.c_str()));
-	_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	memset(_addr.sin_zero, '\0', sizeof(_addr.sin_zero));
 	int optval = 1;
 	if ((setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int))) == -1)
 	{
@@ -143,14 +143,16 @@ void	Server::accept_connection()
 		Client new_client(new_fd);
 		new_client.setServer(&_configuration);
 		add_to_pfds(new_fd);
-		if (_clients.count(new_fd) > 0)
-			std::cout << "=====================================================" << std::endl;
 		_clients[new_fd] = new_client;
+#ifdef PRINT_MODE
 		std::cout << "server: new connection on socket " << new_fd << std::endl;
+#endif
 	}
 	else
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: connection not accepted" << std::endl;
+#endif
 		/*TODO: send response to the client rejecting connection */
 		close(new_fd);
 	}
@@ -163,13 +165,14 @@ void	Server::read_message(int i)
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
 	{
-		close_fd_del_client(i); //todo  msg
-		perror("recv");
-		std::cout << "server: recv error---------------------------------------------------------------------" << std::endl;
+		close_fd_del_client(i);
+		perror("server:recv");
 	}
 	else if (numbytes == 0)
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: client " << _pfds[i].fd << " closed connection" << std::endl;
+#endif
 		close_fd_del_client(i);
 	}
 	else
@@ -177,7 +180,9 @@ void	Server::read_message(int i)
 		buffer[numbytes] = '\0'; //falso ?
 		if (_clients.count(_pfds[i].fd))
 			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
+#ifdef PRINT_MODE
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
+#endif
 	}
 	delete[] buffer;
 }
@@ -193,29 +198,25 @@ void	Server::server_listen()
 	for (size_t i = 0; i < _fd_count; i++)
 	{
 		if (_pfds[i].fd != _server_fd && _clients.count(_pfds[i].fd) == 0)
-		{
-			std::cout << "i: " << i << ", fd: " << _pfds[i].fd << " not found on clients" << std::endl;
 			_pfds[i].fd = -1;
-		}
 		else if (_pfds[i].fd != _server_fd && _clients[_pfds[i].fd].hasTimedOut())
 		{
-			std::cout << "fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
+#ifdef PRINT_MODE
+			std::cout << "server: fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
+#endif
 			send_response(i);
 			close_fd_del_client(i);
 		}
 		else if (_pfds[i].revents & POLLIN)
 		{
-			std::cout << ">>>>>>>>>INCOMING CONNECTION<<<<<<<<<" << std::endl;
-			std::cout << "from client: " << i << ", fd: " << _pfds[i].fd << std::endl; //client 0 -> server socket
 			if (_pfds[i].fd == _server_fd)
 				accept_connection();
 			else
 				read_message(i);
-			std::cout << ">>>>>>>>>INCOMING CONNECTION PROCESSED<<<<<<<<<" << std::endl << std::endl;
 		}
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			if (_pfds[i].fd == _server_fd) //por si las moscas
+			if (_pfds[i].fd == _server_fd)
 				continue ;
 			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
 			if (_clients.count(_pfds[i].fd))
@@ -226,7 +227,6 @@ void	Server::server_listen()
 				else
 					continue;
 			}
-			std::cout << "<<<<<<<<<READY TO ANSWER>>>>>>>>>" << std::endl;
 			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
 			if (status == 0)
 				close_fd_del_client(i);
@@ -234,17 +234,10 @@ void	Server::server_listen()
 			{
 				std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
 				if (cnt != head_info.end() && cnt->second == "close")
-				{
-					std::cout << "Closing " << _pfds[i].fd << " beacuse was not keep alive" << std::endl;
 					close_fd_del_client(i); //todo error msg
-				}
 				else
-				{
 					_clients[_pfds[i].fd].reset();
-					std::cout << "Client " << _pfds[i].fd << " reset (keeping alive)" << std::endl;
-				}
 			}
-			std::cout << "<<<<<<<<<ANSWERED, CLOSED OR RESETED>>>>>>>>>" << std::endl << std::endl;
 		}
 		if(_pfds[i].fd == -1)
 		{
@@ -265,7 +258,6 @@ void	Server::add_to_pfds(int new_fd)
 		delete[] _pfds;
 		_pfds = temp;		
 	}
-	std::cout << "created client on pos " << _fd_count << std::endl;
 	_pfds[_fd_count].fd = new_fd;
 	_pfds[_fd_count].events = POLLIN | POLLOUT;
 	_fd_count++;
@@ -273,22 +265,12 @@ void	Server::add_to_pfds(int new_fd)
 
 void	Server::del_from_pfds(int i)
 {
-	//
-	std::cout << "i(" << i << "), count: " << _fd_count << "), fd_list:";
-	for (size_t i = 0; i < _fd_count; i++)
-		std::cout << " " << _pfds[i].fd;
-	std::cout << std::endl;
 	_pfds[i] = _pfds[_fd_count - 1];
 	_fd_count--;
-	std::cout << "fd_list now:";
-	for (size_t i = 0; i < _fd_count; i++)
-		std::cout << " " << _pfds[i].fd;
-	std::cout << std::endl;
 }
 
 void	Server::close_fd_del_client(int i)
 {
-	std::cout << "closing client (" << i << "): " << _pfds[i].fd << std::endl;
 	if (close(_pfds[i].fd) < 0)
 		std::cout << "problem closing" << std::endl;
 	_clients.erase(_pfds[i].fd);
@@ -300,21 +282,26 @@ void	Server::send_response(int i)
 	size_t val_sent;
 
 	_clients[_pfds[i].fd].BuildResponse();
-//	std::cout << "going to send(" << _pfds[i].fd << ", (str + " << _clients[_pfds[i].fd].getResponseSent() << "), " << _clients[_pfds[i].fd].getResponse().length() << ", 0" << std::endl;
 	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
-//	std::cout << "sent succesfully" << std::endl;
 	if ((val_sent < 0))
+	{
+#ifdef PRINT_MODE
 		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
-		//si se da este caso habría que cerrar la conexión y a otra cosa
+#endif
+	}
 	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
 	{
+#ifdef PRINT_MODE
 		std::cout << "server: partial response sent on socket" << std::endl;
+#endif
 		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
 		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
 	}
 	else
 	{
-		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl << std::endl;
+#ifdef PRINT_MODE
+		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
+#endif
 		_clients[_pfds[i].fd].getResponse().clear();
 	}
 }
