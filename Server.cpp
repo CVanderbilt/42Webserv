@@ -159,7 +159,7 @@ void	Server::accept_connection()
 	}
 	if(_fd_count < MAX_CONNEC)
 	{
-		Client new_client(new_fd);
+		Client new_client;
 		new_client.setServer(&_configuration);
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;

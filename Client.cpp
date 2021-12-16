@@ -1,19 +1,6 @@
 #include "Client.hpp"
 
 Client::Client() : 
-	_fd(-1),
-	_status(-1),
-	_response_status(200),
-	_response_sent(0),
-	_response_left(0),
-	_request(-1),
-	_stat_msg(StatusMessages()),
-	_time_check(ft_now())
-{
-}
-
-Client::Client(int fd) : 
-	_fd(fd),
 	_status(-1),
 	_response_status(200),
 	_response_sent(0),
@@ -25,28 +12,18 @@ Client::Client(int fd) :
 }
 
 Client::Client(Client const &copy) :
-
-	_fd(copy._fd),
 	_status(copy._status),
+	_response_status(copy._response_status),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_request(copy._request),
 	_stat_msg(copy._stat_msg),
+	_redirect(copy._redirect),
 	_time_check(copy._time_check),
+	_error_pages(copy._error_pages),
 	_s(copy._s)
 {
 } 
-
-int		Client::getFd() const
-{
-	return (_fd);
-}
-
-void	Client::setFd(int const &fd)
-{
-	_fd = fd;
-	return;
-}
 
 int		Client::getStatus()
 {
@@ -351,7 +328,7 @@ std::string	Client::BuildPost(const server_location *s)
 			if (_request.mult_form_data[i].filename != "")
 			{
 				std::ofstream file;
-				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				std::string _req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
@@ -372,7 +349,7 @@ std::string	Client::BuildPost(const server_location *s)
 std::string	Client::BuildDelete(const server_location *s)
 {
 	std::string	ret;
-	_req_file = s->write_path + _request.uri;
+	std::string _req_file = s->write_path + _request.uri;
 	if (s->write_enabled)
 	{
 		if (unlink(_req_file.c_str()) < 0)

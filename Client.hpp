@@ -24,17 +24,13 @@
 class Client
 {
 private:
-	int							_fd;
 	int							_status;
 	int							_response_status;
 	std::string					_response;
-	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
 	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
-	bool						_is_autoindex;
-	std::string					_req_file;
 	std::string					_redirect;
 	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
@@ -44,13 +40,10 @@ private:
 public:
 
 	Client();
-	Client(int const fd);
 	Client(Client const &copy);
 	virtual ~Client(){};
 
 	void		setServer(server_info *s);
-	int			getFd() const;
-	void		setFd(int const &fd);
 	int 		getStatus();
 	void		getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
