@@ -74,13 +74,8 @@ std::string ExtractFile(std::string filename)
 
 bool isDirectory(const char *path)
 {
-	std::cout << "DIRECTORY CHECK" << std::endl;
 	struct stat path_stat;
     stat(path, &path_stat);
-	if (S_ISDIR(path_stat.st_mode))
-		std::cout << path << " is directory" << std::endl;
-	else
-		std::cout << path << " is not directory" << std::endl;
     return S_ISDIR(path_stat.st_mode);
 }
 

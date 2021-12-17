@@ -189,10 +189,7 @@ void	Server::read_message(int i)
 	long int 	numbytes;
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
-	{
 		close_fd_del_client(i);
-		perror("server:recv");
-	}
 	else if (numbytes == 0)
 	{
 #ifdef PRINT_MODE

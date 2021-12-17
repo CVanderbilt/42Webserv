@@ -32,7 +32,6 @@ int		Client::getStatus()
 
 void	Client::updateTime()
 {
-	std::cout << "updated" << std::endl;
 	_time_check = ft_now();
 }
 
@@ -136,12 +135,10 @@ void	Client::BuildResponse()
 	{
 		bool force_redir = !lpair.second.empty() && *(lpair.second.end() - 1) != '/' && 
 			isDirectory( (lpair.first->root + lpair.second + '/').c_str() ) ? true : false;
-		std::cout << "fr: " << force_redir << std::endl;
 		if (lpair.first->redirect != "" || force_redir)
 		{
 			_response_status = 301;
 			_redirect = force_redir ? lpair.first->path + lpair.second + '/' : lpair.first->redirect;
-			std::cout << "redirect >" << _redirect << "<" << std::endl;
 			body = "\r\n";
 		}
 		else if (isCGI(lpair.first))
@@ -175,7 +172,6 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 
 std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 {
-	std::cout << "ENTRA EN WRAP HEADER" << std::endl;
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status];
 	std::string headers = "";
@@ -297,7 +293,6 @@ std::string Client::ExecuteCGI(const server_location *s)
 
 std::string	Client::GetFile(LPair& lpair)
 {
-	std::cout << "extrae:" << lpair.first->root + lpair.second << std::endl;
 	std::string ret = ExtractFile(lpair.first->root + lpair.second);
 	if (ret != "")
 		return ("\r\n" + ret);
@@ -308,7 +303,6 @@ std::string	Client::GetFile(LPair& lpair)
 std::string	Client::GetIndex(LPair& lpair, std::string& directory)
 {
 	std::string ret;
-
 	for (std::vector<std::string>::const_iterator it = lpair.first->index.begin(); it != lpair.first->index.end(); it++)
 	{
 		ret = ExtractFile(directory + *it);
@@ -538,10 +532,7 @@ Client::LPair Client::locationByUri(std::string& rawuri, const std::vector<serve
 			if (path_len == uri_len || path_len == uri_len + 1)
 				break ;
 			if (aux < uri_len)
-			{
 				ret.second = rawuri.substr(aux, std::string::npos);
-				std::cout << ret.second << std::endl;
-			}
 		}
 	}
 	return (ret);
