@@ -58,13 +58,13 @@ public:
 	bool		MethodAllowed();
 	void		CheckCGIHeaders(std::string headers);
 	std::string	BuildError();
-	std::string	GetFile(const server_location *);
-	std::string	GetIndex(const server_location *);
+	std::string	GetFile(LPair& lpair);
+	std::string	GetIndex(LPair& lpair, std::string& directory);
 	std::string	BuildGet(LPair& lpair);
 	std::string	BuildPost(LPair& lpair);
 	std::string	BuildDelete(LPair& lpair);
 	std::string	BuildAutoindex();
-	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
+	std::string GetAutoIndex(const std::string& directory, LPair& lpair);
 	std::string	WrapHeader(const std::string& msg, const server_location *);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();

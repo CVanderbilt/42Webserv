@@ -125,18 +125,21 @@ void	Client::BuildResponse()
 	std::string			body;
 	
 	LPair lpair = locationByUri(_request.uri, _s->locations);
-	ResponseStatus(s);
+	ResponseStatus(lpair.first);
 	if (_response_status < 400)
 	{
-		if (s->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
+		std::cout << "location with path: >" << lpair.first->path << "<" << std::endl;
+		std::cout << "status ahora " << _response_status << std::endl;
+		/*			REVISAR BIEN!!!1
+		if (lpair.first->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
 		{
 			_request.uri += "/";
 			_request.file_uri = "";
-		}
-		if (s->redirect != "")
+		}*/
+		if (lpair.first->redirect != "")
 		{
 			_response_status = 301;
-			_redirect = s->redirect;
+			_redirect = lpair.first->redirect;
 			body = "\r\n";
 		}
 		else if (isCGI(lpair.first))
@@ -150,7 +153,7 @@ void	Client::BuildResponse()
 	}
 	if (_response_status >= 400)
 		body = BuildError();
-	stream << WrapHeader(body, s);
+	stream << WrapHeader(body, lpair.first);
 	_response = stream.str();
 	_response_left = _response.length();
 }
@@ -200,7 +203,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	return (stream.str());
 }
 
-std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
+std::string Client::GetAutoIndex(const std::string& directory, LPair& lpair)
 {
 	std::string ret = "<!DOCTYPE html>";
 	ret += "<html>";
@@ -236,7 +239,7 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 			name += "/";
 		else if (sd->d_type != DT_REG)
 			continue ;
-		ret += "<li><a href=\"" + url_location + name + "\">" + name + "</a></li>";
+		ret += "<li><a href=\"" + lpair.first->path + lpair.second + name + "\">" + name + "</a></li>";
 	}
 	ret += "</ul>";
 	ret += "</p>";
@@ -289,47 +292,48 @@ std::string Client::ExecuteCGI(const server_location *s)
 	
 }
 
-std::string	Client::GetFile(const server_location *s)
+std::string	Client::GetFile(LPair& lpair)
 {
-	std::string ret = ExtractFile(s->root + _request.file_uri);
+	std::string ret = ExtractFile(lpair.first->root + lpair.second);
 	if (ret != "")
 		return ("\r\n" + ret);
 	_response_status = 404;
 	return (ret);
 }
 
-std::string	Client::GetIndex(const server_location *s)
+std::string	Client::GetIndex(LPair& lpair, std::string& directory)
 {
 	std::string ret;
 
-	for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+	for (std::vector<std::string>::const_iterator it = lpair.first->index.begin(); it != lpair.first->index.end(); it++)
 	{
-		ret = ExtractFile(s->root + *it);
+		ret = ExtractFile(directory + *it);
 		if (ret != "")
 			return ("\r\n" + ret);
 	}
-	if (s->autoindex)
-		return ("\r\n" + GetAutoIndex(s->root, s->path));
+	if (lpair.first->autoindex)
+		return ("\r\n" + GetAutoIndex(directory, lpair));
 	_response_status = 404;
 	return ("");
 }
 
 std::string	Client::BuildGet(LPair& lpair)
 {
-	if (lpair.second == "")
-		return (GetIndex(s));
-	return (GetFile(s));
+	std::string aux = lpair.first->root + lpair.second;
+	if (*(aux.end() - 1) == '/')
+		return (GetIndex(lpair, aux));
+	return (GetFile(lpair));
 }
 
-std::string	Client::BuildPost(const server_location *s)
+std::string	Client::BuildPost(LPair& lpair)
 {
-	if (s->write_enabled)
+	if (lpair.first->write_enabled)
 	{
 		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
 			if (_request.mult_form_data[i].filename != "")
 			{
 				std::ofstream file;
-				std::string _req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				std::string _req_file = lpair.first->write_path + "/" + _request.mult_form_data[i].filename;
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
@@ -347,11 +351,11 @@ std::string	Client::BuildPost(const server_location *s)
 	return ("\r\n");
 }
 
-std::string	Client::BuildDelete(const server_location *s)
+std::string	Client::BuildDelete(LPair& lpair)
 {
 	std::string	ret;
-	std::string _req_file = s->write_path + _request.uri;
-	if (s->write_enabled)
+	std::string _req_file = lpair.first->write_path + lpair.second;
+	if (lpair.first->write_enabled)
 	{
 		if (unlink(_req_file.c_str()) < 0)
 		{
