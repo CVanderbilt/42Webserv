@@ -32,7 +32,7 @@ void Server::addServerConfig(server_config const& s)
 {
 	for (std::map<std::string, std::string>::const_iterator it = s.opts.begin(); it != s.opts.end(); it++)
 	{
-		if (it->first == "port" && isPort(it->second))
+		if (it->first == "port")
 			_configuration.port = it->second;
 		else if (it->first == "server_name")
 			_configuration.names = splitIntoVector(it->second, " ");
@@ -51,6 +51,20 @@ void Server::addServerConfig(server_config const& s)
 	}
 }
 
+static bool setAllowedMethods(server_location *s, const std::vector<std::string>& methods)
+{
+	for (std::vector<std::string>::const_iterator it = methods.begin(); it < methods.end(); it++)
+		if (!s->allow_get && *it == "GET")
+			s->allow_get = true;
+		else if (!s->allow_post && *it == "POST")
+			s->allow_post = true;
+		else if (!s->allow_delete && *it == "DELETE")
+			s->allow_delete = true;
+		else
+			return (false);
+	return (true);
+}
+
 void Server::addServerLocations(server_config const& s)
 {
 	int idx = -1;
@@ -59,6 +73,12 @@ void Server::addServerLocations(server_config const& s)
 		idx++;
 		_configuration.locations.resize(_configuration.locations.size() + 1);
 		_configuration.locations[idx].path = it->path[it->path.length() - 1] == '/' ? it->path : it->path + "/";
+		if (_configuration.locations[idx].path.length() == 0)
+			throw ServerException("Configuration", "Location path cant be empty");
+		if (_configuration.locations[idx].path[0] != '/')
+			throw ServerException("Configuration", "Location path (" + _configuration.locations[idx].path + ") must start with /");
+		if (it->opts.count("root") == 0 && it->opts.count("redirection") == 0)
+			throw ServerException("Configuration", "Missing either root or redirection (one of them is mandatory inside location)");
 		for (std::map<std::string, std::string>::const_iterator lit = it->opts.begin(); lit != it->opts.end(); lit++)
 		{
 			if (lit->first == "root")
@@ -81,6 +101,11 @@ void Server::addServerLocations(server_config const& s)
 			}
 			else if (lit->first == "redirection")
 				_configuration.locations[idx].redirect = lit->second;
+			else if (lit->first == "allow")
+			{
+				if (!setAllowedMethods(&_configuration.locations[idx], splitIntoVector(lit->second, " ")))
+					throw ServerException("Configuration", "Invalid allowed methods list >" + lit->second + "<");
+			}
 			else
 				throw ServerException("Configuration", "Invalid key in location block: >" + lit->first + "<");
 		}
@@ -90,7 +115,7 @@ void Server::addServerLocations(server_config const& s)
 void	Server::server_start()
 {
 	if ((_server_fd = socket(PF_INET, SOCK_STREAM, 0)) == 0)
-		throw ServerException("In accept", "failed for some reason");
+		throw ServerException("In socket", "failed for some reason");
 	if ((fcntl(_server_fd, F_SETFL, O_NONBLOCK)) == -1)
 	{
 		close (_server_fd);
@@ -140,7 +165,7 @@ void	Server::accept_connection()
 	}
 	if(_fd_count < MAX_CONNEC)
 	{
-		Client new_client(new_fd);
+		Client new_client;
 		new_client.setServer(&_configuration);
 		add_to_pfds(new_fd);
 		_clients[new_fd] = new_client;
@@ -164,10 +189,7 @@ void	Server::read_message(int i)
 	long int 	numbytes;
 	
 	if ((numbytes = recv(_pfds[i].fd, buffer, BUFFER_SIZE, 0)) < 0)
-	{
 		close_fd_del_client(i);
-		perror("server:recv");
-	}
 	else if (numbytes == 0)
 	{
 #ifdef PRINT_MODE
@@ -204,6 +226,7 @@ void	Server::server_listen()
 #ifdef PRINT_MODE
 			std::cout << "server: fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
 #endif
+			send_response(i);
 			close_fd_del_client(i);
 		}
 		else if (_pfds[i].revents & POLLIN)
@@ -231,7 +254,7 @@ void	Server::server_listen()
 				close_fd_del_client(i);
 			else
 			{
-				std::map<std::string, std::string>::const_iterator cnt = head_info.find("connection"); //en algún momento habrá que guardar todas las keys en mayusculas o en minusculas de forma consistente
+				std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
 				if (cnt != head_info.end() && cnt->second == "close")
 					close_fd_del_client(i); //todo error msg
 				else
@@ -279,30 +302,21 @@ void	Server::close_fd_del_client(int i)
 void	Server::send_response(int i)
 {
 	size_t val_sent;
+	size_t total_sent = 0;
 
 	_clients[_pfds[i].fd].BuildResponse();
-	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
-	if ((val_sent < 0))
+	_clients[_pfds[i].fd].updateTime();
+
+	std::string r = _clients[_pfds[i].fd].getResponse();
+	size_t bytes_to_send = r.length();
+	do
 	{
-#ifdef PRINT_MODE
-		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
-#endif
-	}
-	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
-	{
-#ifdef PRINT_MODE
-		std::cout << "server: partial response sent on socket" << std::endl;
-#endif
-		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
-		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
-	}
-	else
-	{
-#ifdef PRINT_MODE
-		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
-#endif
-		_clients[_pfds[i].fd].getResponse().clear();
-	}
+		val_sent = send(_pfds[i].fd, r.c_str(), r.length(), 0);
+		total_sent += val_sent;
+		r = r.substr(val_sent, r.npos);
+	} while (total_sent < bytes_to_send);
+	
+	//_clients[_pfds[i].fd].getResponse().clear();//al acabar
 }
 
 Server::ServerException::ServerException(void)

@@ -47,17 +47,6 @@ std::vector<std::string> splitIntoVector(std::string str, const std::string& sep
 	return (ret);
 }
 
-bool isPort(std::string p)
-{
-	for (size_t i = 0; i < p.size(); i++)
-		if (!std::isdigit(p[i]))
-			return (false);
-	int n = atoi(p.c_str());
-	if (n < 0 || n > 65535)
-		return (false);
-	return (true);
-}
-
 bool fileExists(std::string file)
 {
 	struct stat st;
@@ -83,42 +72,18 @@ std::string ExtractFile(std::string filename)
 	return ("");
 }
 
-//	uri:	/locations/some_file
-//	path:	/locations
-//	
-bool checkUri(const std::string& path, const std::string& uri)
+bool isDirectory(const char *path)
 {
-	size_t path_len = path.length();
-	size_t uri_len = uri.length();
-	for (size_t i = 0; i < path_len; i++)
-	{
-		if (i == uri_len || path[i] != uri[i])
-			return (false);
-	}
-	return (true);
-}
-
-const server_location *locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-{
-	std::string uri = rawuri.substr(0, rawuri.find('?'));
-	if (*(uri.end() - 1) != '/')
-	{
-		const server_location *s = locationByUri(uri + "/", locs);
-		if (s != NULL)
-			return (s);
-	}
-	size_t pos = uri.find_last_of('/');
-	if (pos == uri.npos)
-		return (NULL);
-	std::string uri_directory = uri.substr(0, uri.find_last_of('/') + 1);
-	for (std::vector<server_location>::const_iterator it = locs.begin(); it != locs.end(); it++)
-		if (it->path == uri_directory)
-			return (&(*it));
-	return (NULL);
+	struct stat path_stat;
+    stat(path, &path_stat);
+    return S_ISDIR(path_stat.st_mode);
 }
 
 server_location::server_location():
-	autoindex(false)
+	autoindex(false),
+	allow_get(false),
+	allow_post(false),
+	allow_delete(false)
 {}
 server_location::server_location(const server_location& other):
 	root(other.root),
@@ -127,7 +92,10 @@ server_location::server_location(const server_location& other):
 	cgi(other.cgi),
 	index(other.index),
 	write_enabled(other.write_enabled),
-	write_path(other.write_path)
+	write_path(other.write_path),
+	allow_get(other.allow_get),
+	allow_post(other.allow_post),
+	allow_delete(other.allow_delete)
 {}
 
 server_info::server_info():

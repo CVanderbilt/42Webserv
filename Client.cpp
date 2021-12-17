@@ -1,19 +1,8 @@
 #include "Client.hpp"
 
 Client::Client() : 
-	_fd(-1),
 	_status(-1),
-	_response_sent(0),
-	_response_left(0),
-	_request(-1),
-	_stat_msg(StatusMessages()),
-	_time_check(ft_now())
-{
-}
-
-Client::Client(int fd) : 
-	_fd(fd),
-	_status(-1),
+	_response_status(200),
 	_response_sent(0),
 	_response_left(0),
 	_request(-1),
@@ -23,39 +12,34 @@ Client::Client(int fd) :
 }
 
 Client::Client(Client const &copy) :
-
-	_fd(copy._fd),
 	_status(copy._status),
+	_response_status(copy._response_status),
 	_response_sent(copy._response_sent),
 	_response_left(copy._response_left),
 	_request(copy._request),
 	_stat_msg(copy._stat_msg),
+	_redirect(copy._redirect),
 	_time_check(copy._time_check),
+	_error_pages(copy._error_pages),
 	_s(copy._s)
 {
 } 
-
-int		Client::getFd() const
-{
-	return (_fd);
-}
-
-void	Client::setFd(int const &fd)
-{
-	_fd = fd;
-	return;
-}
 
 int		Client::getStatus()
 {
 	return (_status);
 }
 
+void	Client::updateTime()
+{
+	_time_check = ft_now();
+}
+
 void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
-	_time_check = ft_now();
+	updateTime();
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
@@ -89,9 +73,15 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus(const server_location *s)
 {
+	if (_response_status >= 400)
+		return (1);
 	_response_status = 200;
 	if (!s)
 		return (_response_status = 404);
+	if ( (_request.method == "GET" && !s->allow_get) ||
+		(_request.method == "POST" && !s->allow_post) ||
+		(_request.method == "DELETE" && !s->allow_delete) )
+		return (_response_status = 405);
 	if (_status == 0)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
@@ -118,15 +108,15 @@ bool	Client::MethodAllowed()
 std::string	Client::BuildError()
 {
 	std::string body;
-	if (_s->error_pages.count(_response_status) > 0)
+	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
-		body = "\r\n" + str;
+		body = "Content-Type: text/html\r\n\n\r" + str;
 	}
 	else
 	{
 		std::stringstream	stream;
-		stream << "\r\n<html>\n<body>\n<h1>";
+		stream << "Content-Type: text/html\r\n\r\n<html>\n<body>\n<h1>";
 		stream << _response_status << " " << _stat_msg[_response_status];
 		stream << "</h1>\n</body>\n</html>";
 		body = stream.str();
@@ -139,27 +129,30 @@ void	Client::BuildResponse()
 	std::stringstream	stream;
 	std::string			body;
 	
-	const server_location *s = locationByUri(_request.uri, _s->locations);
-	ResponseStatus(s);
+	LPair lpair = locationByUri(_request.uri, _s->locations);
+	ResponseStatus(lpair.first);
 	if (_response_status < 400)
 	{
-		if (s->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
+		bool force_redir = !lpair.second.empty() && *(lpair.second.end() - 1) != '/' && 
+			isDirectory( (lpair.first->root + lpair.second + '/').c_str() ) ? true : false;
+		if (lpair.first->redirect != "" || force_redir)
 		{
-			_request.uri += "/";
-			_request.file_uri = "";
+			_response_status = 301;
+			_redirect = force_redir ? lpair.first->path + lpair.second + '/' : lpair.first->redirect;
+			body = "\r\n";
 		}
-		if (isCGI(s))
-			body = ExecuteCGI(s);
+		else if (isCGI(lpair.first))
+			body = ExecuteCGI(lpair.first);
 		else if (_request.method.compare("GET") == 0)
-			body = BuildGet(s);
+			body = BuildGet(lpair);
 		else if (_request.method.compare("POST") == 0)
-			body = BuildPost(s);
+			body = BuildPost(lpair);
 		else if (_request.method.compare("DELETE") == 0)
-			body = BuildDelete(s);
+			body = BuildDelete(lpair);
 	}
 	if (_response_status >= 400)
 		body = BuildError();
-	stream << WrapHeader(body, s);
+	stream << WrapHeader(body, lpair.first);
 	_response = stream.str();
 	_response_left = _response.length();
 }
@@ -192,15 +185,16 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 		headers = msg.substr(0, pos + 2);
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	AddIfNotSet(headers, "Content-type", setContentType());
+	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
 	if (_request.method.compare("GET") == 0 && s != 0)
 		AddIfNotSet(headers, "Last-Modified", lastModified(s));
 	if (_response_status == 301)
+	{
 		AddIfNotSet(headers ,"Location", _redirect);
-	if (_response_status == 301)
 		AddIfNotSet(headers ,"Retry-After", 0);
+	}
 	else if (_response_status == 503)
 		AddIfNotSet(headers ,"Retry-After", 120);
 	AddIfNotSet(headers, "Server", "Webserv/0.9");
@@ -208,7 +202,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	return (stream.str());
 }
 
-std::string Client::GetAutoIndex(const std::string& directory, const std::string& url_location)
+std::string Client::GetAutoIndex(const std::string& directory, LPair& lpair)
 {
 	std::string ret = "<!DOCTYPE html>";
 	ret += "<html>";
@@ -225,7 +219,12 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 	d = opendir(directory.c_str());
 	if (!d)
 	{
-		_response_status = 500;
+		if (errno == EACCES)
+			_response_status = 403;
+		else if (errno == ENOENT)
+			_response_status = 404;
+		else
+			_response_status = 500;
 		return("");
 	}
 	ret += "<ul>";
@@ -239,7 +238,7 @@ std::string Client::GetAutoIndex(const std::string& directory, const std::string
 			name += "/";
 		else if (sd->d_type != DT_REG)
 			continue ;
-		ret += "<li><a href=\"" + url_location + name + "\">" + name + "</a></li>";
+		ret += "<li><a href=\"" + lpair.first->path + lpair.second + name + "\">" + name + "</a></li>";
 	}
 	ret += "</ul>";
 	ret += "</p>";
@@ -282,8 +281,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 		if (pos == ret.npos)
 			throw 500 ;
 		CheckCGIHeaders(ret.substr(0, pos));
-		ret = ret.substr(pos + 4, ret.npos);
-		return ("\r\n" + ret);
+		return (ret);
 	}
 	catch(int err)
 	{
@@ -293,53 +291,47 @@ std::string Client::ExecuteCGI(const server_location *s)
 	
 }
 
-std::string	Client::GetFile(const server_location *s)
+std::string	Client::GetFile(LPair& lpair)
 {
-	std::string ret = ExtractFile(s->root + _request.file_uri);
+	std::string ret = ExtractFile(lpair.first->root + lpair.second);
 	if (ret != "")
 		return ("\r\n" + ret);
 	_response_status = 404;
 	return (ret);
 }
 
-std::string	Client::GetIndex(const server_location *s)
+std::string	Client::GetIndex(LPair& lpair, std::string& directory)
 {
 	std::string ret;
-
-	for (std::vector<std::string>::const_iterator it = s->index.begin(); it != s->index.end(); it++)
+	for (std::vector<std::string>::const_iterator it = lpair.first->index.begin(); it != lpair.first->index.end(); it++)
 	{
-		ret = ExtractFile(s->root + *it);
+		ret = ExtractFile(directory + *it);
 		if (ret != "")
 			return ("\r\n" + ret);
 	}
-	if (s->autoindex)
-		return ("\r\n" + GetAutoIndex(s->root, s->path));
+	if (lpair.first->autoindex)
+		return ("\r\n" + GetAutoIndex(directory, lpair));
 	_response_status = 404;
 	return ("");
 }
 
-std::string	Client::BuildGet(const server_location *s)
+std::string	Client::BuildGet(LPair& lpair)
 {
-	if (s->redirect != "")
-	{
-		_response_status = 301;
-		_redirect = s->redirect;
-		return ("\r\n");
-	}
-	if (_request.file_uri == "")
-		return (GetIndex(s));
-	return (GetFile(s));
+	std::string aux = lpair.first->root + lpair.second;
+	if (*(aux.end() - 1) == '/')
+		return (GetIndex(lpair, aux));
+	return (GetFile(lpair));
 }
 
-std::string	Client::BuildPost(const server_location *s)
+std::string	Client::BuildPost(LPair& lpair)
 {
-	if (s->write_enabled)
+	if (lpair.first->write_enabled)
 	{
 		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
 			if (_request.mult_form_data[i].filename != "")
 			{
 				std::ofstream file;
-				_req_file = s->write_path + "/" + _request.mult_form_data[i].filename;
+				std::string _req_file = lpair.first->write_path + "/" + _request.mult_form_data[i].filename;
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
@@ -357,11 +349,11 @@ std::string	Client::BuildPost(const server_location *s)
 	return ("\r\n");
 }
 
-std::string	Client::BuildDelete(const server_location *s)
+std::string	Client::BuildDelete(LPair& lpair)
 {
 	std::string	ret;
-	_req_file = s->write_path + _request.uri;
-	if (s->write_enabled)
+	std::string _req_file = lpair.first->write_path + lpair.second;
+	if (lpair.first->write_enabled)
 	{
 		if (unlink(_req_file.c_str()) < 0)
 		{
@@ -421,6 +413,7 @@ void Client::reset()
 	_response_sent = 0;
 	_response_left = 0;
 	_status = -1;
+	_response_status = 200;
 }
 
 bool Client::isCGI(const server_location *s)
@@ -443,7 +436,10 @@ bool Client::isCGI(const server_location *s)
 bool	Client::hasTimedOut()
 {
 	if (ft_now() - TIMEOUT >= _time_check)
+	{
+		_response_status = 408;
 		return (true);
+	}
 	return (false);
 }
 
@@ -504,4 +500,40 @@ std::string		Client::setContentType()
 	else
 		type = "text/html";
 	return (type);
+}
+
+static size_t inPath(const std::string& path, const std::string& uri, size_t uri_len, size_t path_len)
+{
+	if (path_len > uri_len + 1)
+		return (0);
+	for (size_t i = 0; i < path_len; i++)
+		if (path[i] != uri[i])
+			return (!uri[i] && path[i] == '/' ? path_len : 0);
+	return (path_len);
+}
+//const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(std::string& rawuri, const std::vector<server_location>& locs)
+{
+	size_t uri_len = rawuri.length();
+	size_t biggest_coincidence = 0;
+	LPair ret;
+
+	ret.first = NULL;
+	//revisar si funciona bien con query
+	for (size_t i = 0; i < locs.size(); i++)
+	{
+		size_t path_len = locs[i].path.length();
+		size_t aux = inPath(locs[i].path, rawuri, uri_len, path_len);
+		if (aux > biggest_coincidence) //es un path válildo coincide hast aux
+		{
+			ret.first = &locs[i];
+			ret.second = "";
+			biggest_coincidence = aux;
+			if (path_len == uri_len || path_len == uri_len + 1)
+				break ;
+			if (aux < uri_len)
+				ret.second = rawuri.substr(aux, std::string::npos);
+		}
+	}
+	return (ret);
 }

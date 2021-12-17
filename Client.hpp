@@ -24,34 +24,30 @@
 class Client
 {
 private:
-	int							_fd;
 	int							_status;
 	int							_response_status;
 	std::string					_response;
-	std::string					_response_cgi;
 	size_t						_response_sent;
 	size_t						_response_left;
 	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
-	bool						_is_autoindex;
-	std::string					_req_file;
 	std::string					_redirect;
 	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
 	server_info 				*_s;
 
+	typedef std::pair<const server_location*, std::string> LPair;
+
 	std::string		ExecuteCGI(const server_location *s);
 public:
 
 	Client();
-	Client(int const fd);
 	Client(Client const &copy);
 	virtual ~Client(){};
 
 	void		setServer(server_info *s);
-	int			getFd() const;
-	void		setFd(int const &fd);
 	int 		getStatus();
+	void		updateTime();
 	void		getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
 	std::string	getResponse();
@@ -63,13 +59,13 @@ public:
 	bool		MethodAllowed();
 	void		CheckCGIHeaders(std::string headers);
 	std::string	BuildError();
-	std::string	GetFile(const server_location *);
-	std::string	GetIndex(const server_location *);
-	std::string	BuildGet(const server_location *);
-	std::string	BuildPost(const server_location *);
-	std::string	BuildDelete(const server_location *);
+	std::string	GetFile(LPair& lpair);
+	std::string	GetIndex(LPair& lpair, std::string& directory);
+	std::string	BuildGet(LPair& lpair);
+	std::string	BuildPost(LPair& lpair);
+	std::string	BuildDelete(LPair& lpair);
 	std::string	BuildAutoindex();
-	std::string GetAutoIndex(const std::string& directory, const std::string& url_location);
+	std::string GetAutoIndex(const std::string& directory, LPair& lpair);
 	std::string	WrapHeader(const std::string& msg, const server_location *);
 	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
@@ -78,4 +74,6 @@ public:
 	bool		hasTimedOut();
 	std::string	lastModified(const server_location *);
 	std::string	setContentType();
+	LPair locationByUri(std::string& uri, const std::vector<server_location>& locs);
+
 };

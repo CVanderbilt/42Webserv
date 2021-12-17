@@ -24,6 +24,9 @@ struct server_location
 	std::string							server_name;
 	std::string							port;
 	std::string							redirect;
+	bool								allow_get;
+	bool								allow_post;
+	bool								allow_delete;
 	server_location();
 	server_location(const server_location& other);
 };
@@ -45,8 +48,8 @@ std::vector<std::string> splitIntoVector(std::string str, const std::string& sep
 bool		isPort(std::string p);
 bool		fileExists(std::string file);
 std::string ExtractFile(std::string file);
-const server_location *locationByUri(const std::string& uri, const std::vector<server_location>& locs);
 uint64_t 	ft_now(void);
 std::string getActualDate(void);
+bool		isDirectory(const char *path);
 
 #endif
