@@ -47,6 +47,7 @@ public:
 
 	void		setServer(server_info *s);
 	int 		getStatus();
+	void		updateTime();
 	void		getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
 	std::string	getResponse();
@@ -73,6 +74,6 @@ public:
 	bool		hasTimedOut();
 	std::string	lastModified(const server_location *);
 	std::string	setContentType();
-	LPair locationByUri(const std::string& uri, const std::vector<server_location>& locs);
+	LPair locationByUri(std::string& uri, const std::vector<server_location>& locs);
 
 };

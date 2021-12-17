@@ -305,30 +305,21 @@ void	Server::close_fd_del_client(int i)
 void	Server::send_response(int i)
 {
 	size_t val_sent;
+	size_t total_sent = 0;
 
 	_clients[_pfds[i].fd].BuildResponse();
-	val_sent = send(_pfds[i].fd, _clients[_pfds[i].fd].getResponse().c_str() + _clients[_pfds[i].fd].getResponseSent(), _clients[_pfds[i].fd].getResponse().length(), 0);
-	if ((val_sent < 0))
+	_clients[_pfds[i].fd].updateTime();
+
+	std::string r = _clients[_pfds[i].fd].getResponse();
+	size_t bytes_to_send = r.length();
+	do
 	{
-#ifdef PRINT_MODE
-		std::cout << "server: error sending response on socket " << _pfds[i].fd << std::endl;
-#endif
-	}
-	else if (val_sent < _clients[_pfds[i].fd].getResponseLeft())
-	{
-#ifdef PRINT_MODE
-		std::cout << "server: partial response sent on socket" << std::endl;
-#endif
-		_clients[_pfds[i].fd].setResponseSent(_clients[_pfds[i].fd].getResponseLeft() + val_sent);
-		_clients[_pfds[i].fd].setResponseLeft(_clients[_pfds[i].fd].getResponse().length() - _clients[_pfds[i].fd].getResponseSent());
-	}
-	else
-	{
-#ifdef PRINT_MODE
-		std::cout << "server: response sent on socket " << _pfds[i].fd << std::endl;
-#endif
-		_clients[_pfds[i].fd].getResponse().clear();
-	}
+		val_sent = send(_pfds[i].fd, r.c_str(), r.length(), 0);
+		total_sent += val_sent;
+		r = r.substr(val_sent, r.npos);
+	} while (total_sent < bytes_to_send);
+	
+	//_clients[_pfds[i].fd].getResponse().clear();//al acabar
 }
 
 Server::ServerException::ServerException(void)

@@ -50,5 +50,6 @@ bool		fileExists(std::string file);
 std::string ExtractFile(std::string file);
 uint64_t 	ft_now(void);
 std::string getActualDate(void);
+bool		isDirectory(const char *path);
 
 #endif

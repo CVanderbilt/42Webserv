@@ -30,11 +30,17 @@ int		Client::getStatus()
 	return (_status);
 }
 
+void	Client::updateTime()
+{
+	std::cout << "updated" << std::endl;
+	_time_check = ft_now();
+}
+
 void	Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
-	_time_check = ft_now();
+	updateTime();
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 		_status = 0;
 	else if (temp == Http_req::PARSE_END)
@@ -106,12 +112,12 @@ std::string	Client::BuildError()
 	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
-		body = "\r\n" + str;
+		body = "Content-Type: text/html\r\n\n\r" + str;
 	}
 	else
 	{
 		std::stringstream	stream;
-		stream << "\r\n<html>\n<body>\n<h1>";
+		stream << "Content-Type: text/html\r\n\r\n<html>\n<body>\n<h1>";
 		stream << _response_status << " " << _stat_msg[_response_status];
 		stream << "</h1>\n</body>\n</html>";
 		body = stream.str();
@@ -128,18 +134,14 @@ void	Client::BuildResponse()
 	ResponseStatus(lpair.first);
 	if (_response_status < 400)
 	{
-		std::cout << "location with path: >" << lpair.first->path << "<" << std::endl;
-		std::cout << "status ahora " << _response_status << std::endl;
-		/*			REVISAR BIEN!!!1
-		if (lpair.first->path != _request.uri.substr(0, _request.uri.find_last_of('/') + 1))
-		{
-			_request.uri += "/";
-			_request.file_uri = "";
-		}*/
-		if (lpair.first->redirect != "")
+		bool force_redir = !lpair.second.empty() && *(lpair.second.end() - 1) != '/' && 
+			isDirectory( (lpair.first->root + lpair.second + '/').c_str() ) ? true : false;
+		std::cout << "fr: " << force_redir << std::endl;
+		if (lpair.first->redirect != "" || force_redir)
 		{
 			_response_status = 301;
-			_redirect = lpair.first->redirect;
+			_redirect = force_redir ? lpair.first->path + lpair.second + '/' : lpair.first->redirect;
+			std::cout << "redirect >" << _redirect << "<" << std::endl;
 			body = "\r\n";
 		}
 		else if (isCGI(lpair.first))
@@ -173,6 +175,7 @@ static void AddIfNotSet(std::string& headers, const std::string& header, const T
 
 std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 {
+	std::cout << "ENTRA EN WRAP HEADER" << std::endl;
 	std::stringstream	stream;
 	stream << "HTTP/1.1 " << _response_status << " " << _stat_msg[_response_status];
 	std::string headers = "";
@@ -294,6 +297,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 
 std::string	Client::GetFile(LPair& lpair)
 {
+	std::cout << "extrae:" << lpair.first->root + lpair.second << std::endl;
 	std::string ret = ExtractFile(lpair.first->root + lpair.second);
 	if (ret != "")
 		return ("\r\n" + ret);
@@ -506,49 +510,39 @@ std::string		Client::setContentType()
 
 static size_t inPath(const std::string& path, const std::string& uri, size_t uri_len, size_t path_len)
 {
-	if (path_len > uri_len)
+	if (path_len > uri_len + 1)
 		return (0);
 	for (size_t i = 0; i < path_len; i++)
 		if (path[i] != uri[i])
-			return (0);
+			return (!uri[i] && path[i] == '/' ? path_len : 0);
 	return (path_len);
 }
 //const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(std::string& rawuri, const std::vector<server_location>& locs)
 {
 	size_t uri_len = rawuri.length();
 	size_t biggest_coincidence = 0;
 	LPair ret;
 
 	ret.first = NULL;
-	std::cout << "rawuri: >" << rawuri << "<" << std::endl;
+	//revisar si funciona bien con query
 	for (size_t i = 0; i < locs.size(); i++)
 	{
 		size_t path_len = locs[i].path.length();
-		std::cout << "against path: >" << locs[i].path << "<" << std::endl;
 		size_t aux = inPath(locs[i].path, rawuri, uri_len, path_len);
-		std::cout << "aux: " << aux << " biggest coincidence: " << biggest_coincidence << std::endl;
 		if (aux > biggest_coincidence) //es un path válildo coincide hast aux
 		{
 			ret.first = &locs[i];
 			ret.second = "";
-			std::cout << "new best option" << std::endl;
 			biggest_coincidence = aux;
-			if (path_len == uri_len)
-			{
-				std::cout << "devuelve la location porq coinciden exactamente" << std::endl;
+			if (path_len == uri_len || path_len == uri_len + 1)
 				break ;
-			}
-			std::cout << "uri_len: " << uri_len << std::endl;
-			std::cout << "path: " << rawuri.substr(0, aux) << std::endl;
 			if (aux < uri_len)
 			{
 				ret.second = rawuri.substr(aux, std::string::npos);
-				std::cout << "rest: " << ret.second << std::endl;
+				std::cout << ret.second << std::endl;
 			}
 		}
-		else
-			std::cout << "discarded" << std::endl;
 	}
 	return (ret);
 }
