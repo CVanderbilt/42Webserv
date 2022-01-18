@@ -96,7 +96,7 @@ Content-Type: text/html
 
 ###
 
-DELETE /a.txt HTTP/1.1
+DELETE /megaphone.cpp HTTP/1.1
 Host: localhost:8081
 
 

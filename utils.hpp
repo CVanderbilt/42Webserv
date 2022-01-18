@@ -11,7 +11,7 @@
 # include <cstdlib>
 # include <stdint.h>
 
-# define PRINT_MODE
+//# define PRINT_MODE
 struct server_location 
 {
 	std::string							root; //is the path to the files that are mapped to the uri of the browser

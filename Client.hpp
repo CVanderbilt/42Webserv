@@ -19,7 +19,7 @@
 #include "utils.hpp"
 #include "CGI.hpp"
 
-#define TIMEOUT 3000 // in miliseconds
+#define TIMEOUT 30000 // in miliseconds
 
 class Client
 {
