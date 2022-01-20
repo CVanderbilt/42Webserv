@@ -47,12 +47,6 @@ std::string Http_req::status_to_str(parsing_status st)
 void Http_req::parse_body(void)
 {
 	size_t body_len = body.length();
-
-	if (body_len > max_size)
-	{
-		status = PARSE_ERROR;
-		return ;
-	}
 	if (body_len == content_length) 								//(1)body length correct -> end
 			status = PARSE_END;
 	else if (body_len > content_length) 							//(2)body length greater than expected -> trim -> end
@@ -254,7 +248,12 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		return status;
 	_aux_buff.append(chunk, bytes);
 
-	parse_loop();	
+	parse_loop();
+	if (body.length() > max_size)
+	{
+		status = PARSE_ERROR;
+		return (status);
+	}
 	if (status == PARSE_END && body != "" &&
 		(head["Content-Type"] == "multipart/form-data" ||
 		head["content-type"] == "multipart/form-data"))

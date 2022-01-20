@@ -86,7 +86,6 @@ int		Client::ResponseStatus(const server_location *s)
 	{
 		if (_request.protocol.compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		std::cout << _s->max_body_size << std::endl;
 		if (_request.body.length() > _s->max_body_size)
 			return (_response_status = 413);
 		return (_response_status = 400);
