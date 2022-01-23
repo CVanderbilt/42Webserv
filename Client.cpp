@@ -111,12 +111,12 @@ std::string	Client::BuildError()
 	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
-		body = "Content-Type: text/html\r\n\n\r" + str;
+		body = "\n\r" + str;
 	}
 	else
 	{
 		std::stringstream	stream;
-		stream << "Content-Type: text/html\r\n\r\n<html>\n<body>\n<h1>";
+		stream << "\r\n<html>\n<body>\n<h1>";
 		stream << _response_status << " " << _stat_msg[_response_status];
 		stream << "</h1>\n</body>\n</html>";
 		body = stream.str();
@@ -179,12 +179,13 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	size_t pos = msg.find("\r\n\r\n");
 	size_t pos2 = msg.find("\r\n");
 	pos = pos2 >= pos ? pos : pos2;
-
 	if (pos != msg.npos)
 	{
 		headers = msg.substr(0, pos + 2);
 		body = msg.substr(pos + 2, msg.npos);
 	}
+	if (isCGI(s))
+		headers.insert(0, "\r\n");
 	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
