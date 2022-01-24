@@ -39,6 +39,23 @@ private:
 	typedef std::pair<const server_location*, std::string> LPair;
 
 	std::string		ExecuteCGI(const server_location *s);
+	int				ResponseStatus(const server_location *);
+	bool			MethodAllowed();
+	void			CheckCGIHeaders(std::string headers);
+	std::string		BuildError();
+	std::string		GetFile(LPair& lpair);
+	std::string		GetIndex(LPair& lpair, std::string& directory);
+	std::string		BuildGet(LPair& lpair);
+	std::string		BuildPost(LPair& lpair);
+	std::string		BuildDelete(LPair& lpair);
+	std::string		BuildAutoindex();
+	std::string		GetAutoIndex(const std::string& directory, LPair& lpair);
+	std::string		WrapHeader(const std::string& msg, const server_location *);
+	bool			isCGI(const server_location *);
+	std::map<int, std::string>		StatusMessages();
+	std::string		lastModified(const server_location *);
+	LPair locationByUri(std::string& uri, const std::vector<server_location>& locs);
+
 public:
 
 	Client();
@@ -48,32 +65,16 @@ public:
 	void		setServer(server_info *s);
 	int 		getStatus();
 	void		updateTime();
-	void		getParseChunk(char *chunk, size_t bytes);
+	int			getParseChunk(char *chunk, size_t bytes);
 	void		BuildResponse();
 	std::string	getResponse();
 	size_t		getResponseSent();
 	void		setResponseSent(size_t sent);
 	size_t		getResponseLeft();
 	void		setResponseLeft(size_t left);
-	int			ResponseStatus(const server_location *);
-	bool		MethodAllowed();
-	void		CheckCGIHeaders(std::string headers);
-	std::string	BuildError();
-	std::string	GetFile(LPair& lpair);
-	std::string	GetIndex(LPair& lpair, std::string& directory);
-	std::string	BuildGet(LPair& lpair);
-	std::string	BuildPost(LPair& lpair);
-	std::string	BuildDelete(LPair& lpair);
-	std::string	BuildAutoindex();
-	std::string GetAutoIndex(const std::string& directory, LPair& lpair);
-	std::string	WrapHeader(const std::string& msg, const server_location *);
-	std::map<int, std::string>		StatusMessages();
 	const Http_req&	GetRequest();
 	void 		reset();
-	bool		isCGI(const server_location *);
 	bool		hasTimedOut();
-	std::string	lastModified(const server_location *);
 	std::string	setContentType();
-	LPair locationByUri(std::string& uri, const std::vector<server_location>& locs);
 
 };

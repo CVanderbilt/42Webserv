@@ -201,7 +201,10 @@ void	Server::read_message(int i)
 	{
 		buffer[numbytes] = '\0'; //falso ?
 		if (_clients.count(_pfds[i].fd))
-			_clients[_pfds[i].fd].getParseChunk(buffer, numbytes);
+		{
+			if (_clients[_pfds[i].fd].getParseChunk(buffer, numbytes))
+				_pfds[i].events = POLLOUT;
+		}
 #ifdef PRINT_MODE
 		std::cout << "server: message read and parsed on socket " << _pfds[i].fd << std::endl;
 #endif
@@ -245,7 +248,10 @@ void	Server::server_listen()
 			{
 				status = _clients[_pfds[i].fd].getStatus();
 				if (status >= 0)
+				{
 					send_response(i);
+					_pfds[i].events = POLLIN;
+				}
 				else
 					continue;
 			}
@@ -258,7 +264,10 @@ void	Server::server_listen()
 				if (cnt != head_info.end() && cnt->second == "close")
 					close_fd_del_client(i); //todo error msg
 				else
+				{
 					_clients[_pfds[i].fd].reset();
+					_pfds[i].events = POLLIN;
+				}
 			}
 		}
 		if(_pfds[i].fd == -1)
@@ -281,7 +290,7 @@ void	Server::add_to_pfds(int new_fd)
 		_pfds = temp;		
 	}
 	_pfds[_fd_count].fd = new_fd;
-	_pfds[_fd_count].events = POLLIN | POLLOUT;
+	_pfds[_fd_count].events = POLLIN;
 	_fd_count++;
 }
 

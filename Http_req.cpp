@@ -9,7 +9,7 @@ Http_req::Http_req(size_t max_size_body)
 }
 
 Http_req::Http_req(Http_req const &copy):
-	max_size(copy.max_size),
+	_max_size(copy._max_size),
 	status(copy.status),
 	method(copy.method),
 	uri(copy.uri),
@@ -25,7 +25,7 @@ Http_req::Http_req(Http_req const &copy):
 void Http_req::initialize(size_t max_size_body)
 {
 	_mfd_size = 0;
-	max_size = max_size_body;
+	_max_size = max_size_body;
 	status = Http_req::PARSE_INIT;
 	file_uri = "";
 
@@ -249,7 +249,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 	_aux_buff.append(chunk, bytes);
 
 	parse_loop();
-	if (body.length() > max_size)
+	if (body.length() > _max_size)
 	{
 		status = PARSE_ERROR;
 		return (status);
@@ -262,4 +262,14 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		parse_body_multiform();
 	}
 	return (status);
+}
+
+size_t	Http_req::getMaxSize()
+{
+	return (_max_size);
+}
+
+void	Http_req::setMaxSize(size_t value)
+{
+	_max_size = value;
 }

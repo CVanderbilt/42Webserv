@@ -33,22 +33,20 @@ class Http_req
 	private:
 		std::string _aux_buff;
 		int			_mfd_size;
-//		int			_content_size;
+		size_t		_max_size;
 
-		bool parse_uri(std::string& line, int eol);
-		void parse_key_value_pair(std::string& line);
-		void parse_loop(void);
-		void parse_method(void);
-		void parse_head(void);
-		void parse_body(void);
-		void parse_body_multiform(void);
+		bool	parse_uri(std::string& line, int eol);
+		void	parse_key_value_pair(std::string& line);
+		void	parse_loop(void);
+		void	parse_method(void);
+		void	parse_head(void);
+		void	parse_body(void);
+		void	parse_body_multiform(void);
 
 	public:
-		size_t								max_size;
 		parsing_status 						status;
 		std::string							method;
 		std::string							uri;
-		//std::string							file_uri;
 		std::string							file_uri;
 		std::string							query_string;
 		std::string							protocol;
@@ -61,7 +59,9 @@ class Http_req
 
 		parsing_status parse_chunk(char* chunk, size_t bytes);
 		static std::string status_to_str(parsing_status st);
-		void initialize(size_t max_size_body);
+		void	initialize(size_t max_size_body);
+		size_t	getMaxSize();
+		void	setMaxSize(size_t value);
 };
 
 std::ostream&   operator<<(std::ostream& os, const Http_req& obj);

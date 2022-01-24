@@ -35,15 +35,22 @@ void	Client::updateTime()
 	_time_check = ft_now();
 }
 
-void	Client::getParseChunk(char *chunk, size_t bytes)
+int		Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
 	updateTime();
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
+	{
 		_status = 0;
+		return (0);
+	}	
 	else if (temp == Http_req::PARSE_END)
+	{
 		_status = 1;
+		return (1);
+	}
+	return (0);
 }
 
 std::string	Client::getResponse()
@@ -400,7 +407,7 @@ std::map<int, std::string>	Client::StatusMessages()
 void		Client::setServer(server_info *s)
 {
 	_s = s;
-	_request.max_size = s->max_body_size;
+	_request.setMaxSize(s->max_body_size);
 }
 
 const Http_req&	Client::GetRequest()
