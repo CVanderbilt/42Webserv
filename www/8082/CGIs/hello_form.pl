@@ -21,6 +21,7 @@ foreach $pair (@pairs) {
 $first_name = $FORM{fname};
 $last_name = $FORM{lname};
 
+print "Set-Cookie: prueba=valor\n";
 print "Content-Type: text/html\r\n\r\n";
 print "<html>";
 print "<head>";

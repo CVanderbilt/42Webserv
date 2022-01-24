@@ -10,8 +10,7 @@ form = cgi.FieldStorage()
 fname = form.getvalue('fname')
 lname = form.getvalue('lname')
 
-print 'Set-Cookie: prueba=valor'
-print 'Content-Type:text/html\r\n\r\n'
+print 'Content-type:text/html\r\n\r\n'
 print '<html>'
 print '<head>'
 print '<title>Hello %s - CGI Program</title>' % (os.environ["REQUEST_METHOD"])
@@ -20,3 +19,4 @@ print '<body>'
 print '<h2>Hello %s %s</h2>' % (fname, lname)
 print '</body>'
 print '</html>'
+
