@@ -93,7 +93,7 @@ int		Client::ResponseStatus(const server_location *s)
 		return (_response_status = 405);
 	if (_status == 0)
 	{
-		if (_request.protocol.compare("HTTP/1.1") != 0)
+		if (_request.getProtocol().compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
 		if (_request.body.length() > _s->max_body_size)
 			return (_response_status = 413);
@@ -141,7 +141,7 @@ void	Client::BuildResponse()
 	std::string			body;
 	std::string	method = _request.getMethod();
 	
-	LPair lpair = locationByUri(_request.uri, _s->locations);
+	LPair lpair = locationByUri(_request.getUri(), _s->locations);
 	ResponseStatus(lpair.first);
 	if (_response_status < 400)
 	{
@@ -338,17 +338,19 @@ std::string	Client::BuildGet(LPair& lpair)
 
 std::string	Client::BuildPost(LPair& lpair)
 {
+	std::vector<Mult_Form_Data>	mtd = _request.getMultFormData();
+	
 	if (lpair.first->write_enabled)
 	{
-		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-			if (_request.mult_form_data[i].filename != "")
+		for (size_t i = 0; i < mtd.size(); i++)
+			if (mtd[i].filename != "")
 			{
 				std::ofstream file;
-				std::string _req_file = lpair.first->write_path + "/" + _request.mult_form_data[i].filename;
+				std::string _req_file = lpair.first->write_path + "/" + mtd[i].filename;
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
-					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+					file.write(mtd[i].body.c_str(), mtd[i].body.length());
 					file.close();
 				}
 				else
@@ -431,13 +433,11 @@ void Client::reset()
 
 bool Client::isCGI(const server_location *s)
 {
-	std::string	str;
+	std::string	str = _request.getUri();
 	size_t		i;
 	
-	if ((i = _request.uri.find("?")) != _request.uri.npos)
-		str = _request.uri.substr(0, i);
-	else
-		str = _request.uri;
+	if ((i = str.find("?")) != str.npos)
+		str = str.substr(0, i);
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
@@ -474,8 +474,8 @@ std::string	Client::lastModified(const server_location *s)
 			path = s->root;
 		}
 	}
-	else if (_request.file_uri != "")
-		path = s->root + "/" + _request.file_uri;
+	else if (_request.getFileUri() != "")
+		path = s->root + "/" + _request.getFileUri();
 	if (stat(path.c_str(), &stats) == 0)
 	{
 		gm = gmtime(&stats.st_mtime);
@@ -495,7 +495,7 @@ std::string		Client::setContentType()
 	std::string str;
 	size_t		i;
 	
-	str = _request.uri;
+	str = _request.getUri();
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i + 1, str.length() - i);
 	if (str == "css")

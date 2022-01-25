@@ -31,10 +31,19 @@ class Http_req
 		}	parsing_status;
 
 	private:
-		std::string _aux_buff;
-		int			_mfd_size;
-		size_t		_max_size;
-		std::string	_method;
+		std::string 						_aux_buff;
+		int									_mfd_size;
+		size_t								_max_size;
+		std::string							_method;
+		std::string							_uri;
+		parsing_status 						_pars_stat;
+		std::string							_file_uri;
+		std::string							_query_string;
+		std::string							_protocol;
+		std::map<std::string, std::string>	_head;
+		std::string							_body;
+		size_t								_content_length;
+		std::vector<Mult_Form_Data>			_mult_form_data;
 
 		bool	parse_uri(std::string& line, int eol);
 		void	parse_key_value_pair(std::string& line);
@@ -43,26 +52,19 @@ class Http_req
 		void	parse_head(void);
 		void	parse_body(void);
 		void	parse_body_multiform(void);
+		static std::string status_to_str(parsing_status st);
 
 	public:
-		parsing_status 						status;
-		std::string							uri;
-		std::string							file_uri;
-		std::string							query_string;
-		std::string							protocol;
-		std::map<std::string, std::string>	head;
-		std::string							body;
-		size_t								content_length;
-		std::vector<Mult_Form_Data>			mult_form_data;
 		Http_req(size_t max_size_body);
 		Http_req(Http_req const &copy);
 
 		parsing_status parse_chunk(char* chunk, size_t bytes);
-		static std::string status_to_str(parsing_status st);
 		void		initialize(size_t max_size_body);
 		size_t		getMaxSize();
 		void		setMaxSize(size_t value);
 		std::string	getMethod();
+		std::string	getUri();
+		std::string	getFileUri();
+		std::string	getProtocol();
+		std::vector<Mult_Form_Data> getMultFormData();
 };
-
-std::ostream&   operator<<(std::ostream& os, const Http_req& obj);
