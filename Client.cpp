@@ -80,14 +80,16 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus(const server_location *s)
 {
+	std::string	method = _request.getMethod();
+	
 	if (_response_status >= 400)
 		return (1);
 	_response_status = 200;
 	if (!s)
 		return (_response_status = 404);
-	if ( (_request.method == "GET" && !s->allow_get) ||
-		(_request.method == "POST" && !s->allow_post) ||
-		(_request.method == "DELETE" && !s->allow_delete) )
+	if ( (method == "GET" && !s->allow_get) ||
+		(method == "POST" && !s->allow_post) ||
+		(method == "DELETE" && !s->allow_delete) )
 		return (_response_status = 405);
 	if (_status == 0)
 	{
@@ -104,9 +106,11 @@ int		Client::ResponseStatus(const server_location *s)
 
 bool	Client::MethodAllowed()
 {
-	if (_request.method.compare("GET") == 0 ||
-		_request.method.compare("POST") == 0 ||
-		_request.method.compare("DELETE") == 0)
+	std::string	method = _request.getMethod();
+
+	if (method.compare("GET") == 0 ||
+		method.compare("POST") == 0 ||
+		method.compare("DELETE") == 0)
 		return (true);
 	else
 		return (false);
@@ -135,6 +139,7 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
+	std::string	method = _request.getMethod();
 	
 	LPair lpair = locationByUri(_request.uri, _s->locations);
 	ResponseStatus(lpair.first);
@@ -150,11 +155,11 @@ void	Client::BuildResponse()
 		}
 		else if (isCGI(lpair.first))
 			body = ExecuteCGI(lpair.first);
-		else if (_request.method.compare("GET") == 0)
+		else if (method.compare("GET") == 0)
 			body = BuildGet(lpair);
-		else if (_request.method.compare("POST") == 0)
+		else if (method.compare("POST") == 0)
 			body = BuildPost(lpair);
-		else if (_request.method.compare("DELETE") == 0)
+		else if (method.compare("DELETE") == 0)
 			body = BuildDelete(lpair);
 	}
 	if (_response_status >= 400)
@@ -196,7 +201,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
-	if (_request.method.compare("GET") == 0 && s != 0)
+	if (_request.getMethod().compare("GET") == 0 && s != 0)
 		AddIfNotSet(headers, "Last-Modified", lastModified(s));
 	if (_response_status == 301)
 	{
@@ -280,7 +285,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 {
 	try
 	{
-		if (_request.method.compare("DELETE") == 0)
+		if (_request.getMethod().compare("DELETE") == 0)
 			throw 405 ;
 		std::string ret;
 		CGI cgi(&_request, s, _s);

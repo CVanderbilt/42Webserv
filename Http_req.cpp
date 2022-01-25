@@ -11,7 +11,7 @@ Http_req::Http_req(size_t max_size_body)
 Http_req::Http_req(Http_req const &copy):
 	_max_size(copy._max_size),
 	status(copy.status),
-	method(copy.method),
+	_method(copy._method),
 	uri(copy.uri),
 	file_uri(copy.file_uri),
 	query_string(copy.query_string),
@@ -157,7 +157,7 @@ void Http_req::parse_method(void)
 	status = PARSE_ERROR;
 	if (eol == _aux_buff.npos || eol == 0)
 		return ;
-	method = line.substr(0, eol);
+	_method = line.substr(0, eol);
 	
 	line[eol] = '.';
 	if (!parse_uri(line, eol) || protocol != "HTTP/1.1")
@@ -272,4 +272,9 @@ size_t	Http_req::getMaxSize()
 void	Http_req::setMaxSize(size_t value)
 {
 	_max_size = value;
+}
+
+std::string	Http_req::getMethod()
+{
+	return (_method);
 }
