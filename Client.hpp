@@ -54,7 +54,7 @@ private:
 	bool			isCGI(const server_location *);
 	std::map<int, std::string>		StatusMessages();
 	std::string		lastModified(const server_location *);
-	LPair locationByUri(std::string& uri, const std::vector<server_location>& locs);
+	LPair locationByUri(const std::string& uri, const std::vector<server_location>& locs);
 
 public:
 

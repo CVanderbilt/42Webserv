@@ -11,7 +11,7 @@ CGI::CGI(Http_req *request, const server_location *s, const server_info *info) :
 	_serv_loc(s),
 	_request(request),
 	_path_cgi(_serv_loc->root),
-	_name_cgi(_serv_loc->root + _request->file_uri),
+	_name_cgi(_serv_loc->root + _request->getFileUri()),
 	_info(info)
 {
 	extern char **environ;
@@ -19,7 +19,7 @@ CGI::CGI(Http_req *request, const server_location *s, const server_info *info) :
 	_env_vec = envToVector(environ);
 	if (!(_args = (char **)malloc(sizeof(char *) * 3)))
 		throw 500;
-	std::string aux = this->_request->file_uri;
+	std::string aux = this->_request->getFileUri();
 	aux = aux.substr(aux.find_last_of('.'), aux.npos);
 	std::map<std::string, std::string>::const_iterator it = _info->cgi_paths->find(aux);
 	if (it == _info->cgi_paths->end())
@@ -55,7 +55,7 @@ std::string	CGI::executeCGI()
 	
 	if ((_CGI_fd = open("./cgi.temp", O_RDWR | O_CREAT | O_TRUNC | O_NOFOLLOW | O_NONBLOCK, 0666)) < 0)
 		throw 500;
-	valwrite = write(this->_CGI_fd, _request->body.c_str(), _request->body.length());
+	valwrite = write(this->_CGI_fd, _request->getBody().c_str(), _request->getBody().length());
 	close(_CGI_fd);
 	if (pipe(pipes))
 		throw 500;
@@ -85,7 +85,7 @@ void CGI::childProcess(char **args, int &pipes_in)
 		std::cout << "Status: 500 Internal Server Error\r\n\r\n";
 		exit(1);
 	}
-	if (_request->body.length() > 0)
+	if (_request->getBody().length() > 0)
 	{
 		_CGI_fd = open("./cgi.temp", O_RDONLY, 0);
 		if (dup2(_CGI_fd, STDIN))
@@ -96,7 +96,7 @@ void CGI::childProcess(char **args, int &pipes_in)
 	}
 	else
 		close(STDIN);
-	if (_request->body.length() > 0)
+	if (_request->getBody().length() > 0)
 		close(_CGI_fd);
 	if ((ret = execve(args[0], args, env)) < 0)
 		ret = 1;
@@ -155,18 +155,18 @@ void	CGI::addEnvVars(void)
 	_env_vec.push_back("SERVER_PROTOCOL=HTTP/1.1");
 	_env_vec.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	_env_vec.push_back("REDIRECT_STATUS=200");
-	_env_vec.push_back("REQUEST_URI=" + _request->uri);
-	_env_vec.push_back("REQUEST_METHOD=" + _request->method);
+	_env_vec.push_back("REQUEST_URI=" + _request->getUri());
+	_env_vec.push_back("REQUEST_METHOD=" + _request->getMethod());
 	_env_vec.push_back("AUTH_TYPE=NULL");
 	_env_vec.push_back("REMOTE_USER=NULL");
-	if (_request->head.count("content-type"))
-		_env_vec.push_back("CONTENT_TYPE=" + _request->head["Content-Type"]);
-	if (_request->head.count("Content-Length"))
-		_env_vec.push_back("CONTENT_LENGTH=" + _request->head["Content-Length"]);
+	if (_request->getHead().count("content-type"))
+		_env_vec.push_back("CONTENT_TYPE=" + _request->getHead()["Content-Type"]);
+	if (_request->getHead().count("Content-Length"))
+		_env_vec.push_back("CONTENT_LENGTH=" + _request->getHead()["Content-Length"]);
 	else
 		_env_vec.push_back("CONTENT_LENGTH=0");
-	_env_vec.push_back("QUERY_STRING=" + _request->query_string);
-	_env_vec.push_back("PATH_INFO=" + _request->uri);
+	_env_vec.push_back("QUERY_STRING=" + _request->getQueryString());
+	_env_vec.push_back("PATH_INFO=" + _request->getUri());
 	_env_vec.push_back("PATH_TRANSLATED=" + _path_cgi);
 	_env_vec.push_back("SCRIPT_NAME=" + _name_cgi);
 	_env_vec.push_back("SCRIPT_FILENAME=" + _name_cgi);

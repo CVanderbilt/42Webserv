@@ -255,7 +255,7 @@ void	Server::server_listen()
 				else
 					continue;
 			}
-			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().head;
+			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().getHead();
 			if (status == 0)
 				close_fd_del_client(i);
 			else

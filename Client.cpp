@@ -95,7 +95,7 @@ int		Client::ResponseStatus(const server_location *s)
 	{
 		if (_request.getProtocol().compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		if (_request.body.length() > _s->max_body_size)
+		if (_request.getBody().length() > _s->max_body_size)
 			return (_response_status = 413);
 		return (_response_status = 400);
 	}
@@ -525,7 +525,7 @@ static size_t inPath(const std::string& path, const std::string& uri, size_t uri
 	return (path_len);
 }
 //const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-Client::LPair Client::locationByUri(std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
 {
 	size_t uri_len = rawuri.length();
 	size_t biggest_coincidence = 0;

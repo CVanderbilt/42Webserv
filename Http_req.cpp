@@ -10,9 +10,9 @@ Http_req::Http_req(size_t max_size_body)
 
 Http_req::Http_req(Http_req const &copy):
 	_max_size(copy._max_size),
-	_pars_stat(copy._pars_stat),
 	_method(copy._method),
 	_uri(copy._uri),
+	_pars_stat(copy._pars_stat),
 	_file_uri(copy._file_uri),
 	_query_string(copy._query_string),
 	_protocol(copy._protocol),
@@ -120,7 +120,7 @@ void Http_req::parse_body_multiform(void)
 				_pars_stat = PARSE_END;
 				break;
 			}
-			_mult_form_data[_mfd_size - 1]._body.append(line, 0, line.length()).append("\n", 0, 1);
+			_mult_form_data[_mfd_size - 1].body.append(line, 0, line.length()).append("\n", 0, 1);
 		}
 	}
 	if (_pars_stat != PARSE_END)
@@ -274,27 +274,42 @@ void	Http_req::setMaxSize(size_t value)
 	_max_size = value;
 }
 
-std::string	Http_req::getMethod()
+std::string	Http_req::getMethod() const
 {
 	return (_method);
 }
 
-std::string	Http_req::getUri()
+std::string	Http_req::getUri() const
 {
 	return (_uri);
 }
 
-std::string	Http_req::getFileUri()
+std::string	Http_req::getFileUri() const
 {
 	return (_file_uri);
 }
 
-std::string	Http_req::getProtocol()
+std::string	Http_req::getQueryString() const
+{
+	return (_query_string);
+}
+
+std::string	Http_req::getProtocol() const
 {
 	return (_protocol);
 }
 
-std::vector<Mult_Form_Data> Http_req::getMultFormData()
+std::map<std::string, std::string>	Http_req::getHead() const
+{
+	return (_head);
+}
+
+std::string	Http_req::getBody() const
+{
+	return (_body);
+}
+
+std::vector<Mult_Form_Data> Http_req::getMultFormData() const
 {
 	return (_mult_form_data);
 }

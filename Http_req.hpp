@@ -58,13 +58,16 @@ class Http_req
 		Http_req(size_t max_size_body);
 		Http_req(Http_req const &copy);
 
-		parsing_status parse_chunk(char* chunk, size_t bytes);
-		void		initialize(size_t max_size_body);
-		size_t		getMaxSize();
-		void		setMaxSize(size_t value);
-		std::string	getMethod();
-		std::string	getUri();
-		std::string	getFileUri();
-		std::string	getProtocol();
-		std::vector<Mult_Form_Data> getMultFormData();
+		parsing_status	parse_chunk(char* chunk, size_t bytes);
+		void			initialize(size_t max_size_body);
+		size_t			getMaxSize();
+		void			setMaxSize(size_t value);
+		std::string		getMethod() const;
+		std::string		getUri() const;
+		std::string		getFileUri() const;
+		std::string		getQueryString() const;
+		std::string		getProtocol() const;
+		std::map<std::string, std::string>	getHead() const;
+		std::string	getBody() const;
+		std::vector<Mult_Form_Data> getMultFormData() const;
 };
