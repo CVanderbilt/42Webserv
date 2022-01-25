@@ -40,7 +40,7 @@ private:
 
 	std::string		ExecuteCGI(const server_location *s);
 	int				ResponseStatus(const server_location *);
-	bool			MethodAllowed();
+	bool			MethodAllowed() const;
 	void			CheckCGIHeaders(std::string headers);
 	std::string		BuildError();
 	std::string		GetFile(LPair& lpair);
@@ -51,10 +51,11 @@ private:
 	std::string		BuildAutoindex();
 	std::string		GetAutoIndex(const std::string& directory, LPair& lpair);
 	std::string		WrapHeader(const std::string& msg, const server_location *);
-	bool			isCGI(const server_location *);
+	bool			isCGI(const server_location *) const;
 	std::map<int, std::string>		StatusMessages();
-	std::string		lastModified(const server_location *);
-	LPair locationByUri(const std::string& uri, const std::vector<server_location>& locs);
+	std::string		lastModified(const server_location *) const;
+	LPair 			locationByUri(const std::string& uri, const std::vector<server_location>& locs) const;
+	std::string		setContentType() const;
 
 public:
 
@@ -62,19 +63,18 @@ public:
 	Client(Client const &copy);
 	virtual ~Client(){};
 
-	void		setServer(server_info *s);
-	int 		getStatus();
-	void		updateTime();
-	int			getParseChunk(char *chunk, size_t bytes);
-	void		BuildResponse();
-	std::string	getResponse();
-	size_t		getResponseSent();
-	void		setResponseSent(size_t sent);
-	size_t		getResponseLeft();
-	void		setResponseLeft(size_t left);
-	const Http_req&	GetRequest();
-	void 		reset();
-	bool		hasTimedOut();
-	std::string	setContentType();
+	void			setServer(server_info *s);
+	int 			getStatus() const;
+	void			updateTime();
+	int				getParseChunk(char *chunk, size_t bytes);
+	void			BuildResponse();
+	std::string		getResponse() const;
+	size_t			getResponseSent() const;
+	void			setResponseSent(size_t sent);
+	size_t			getResponseLeft() const;
+	void			setResponseLeft(size_t left);
+	const Http_req&	GetRequest() const;
+	void 			reset();
+	bool			hasTimedOut();
 
 };

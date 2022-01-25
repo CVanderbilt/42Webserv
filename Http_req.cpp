@@ -264,7 +264,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 	return (_pars_stat);
 }
 
-size_t	Http_req::getMaxSize()
+size_t	Http_req::getMaxSize() const
 {
 	return (_max_size);
 }

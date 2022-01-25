@@ -25,7 +25,7 @@ Client::Client(Client const &copy) :
 {
 } 
 
-int		Client::getStatus()
+int		Client::getStatus() const
 {
 	return (_status);
 }
@@ -53,12 +53,12 @@ int		Client::getParseChunk(char *chunk, size_t bytes)
 	return (0);
 }
 
-std::string	Client::getResponse()
+std::string	Client::getResponse() const
 {
 	return (_response);
 }
 
-size_t	Client::getResponseSent()
+size_t	Client::getResponseSent() const
 {
 	return (_response_sent);
 }
@@ -68,7 +68,7 @@ void	Client::setResponseSent(size_t sent)
 	_response_sent = sent;
 }
 
-size_t	Client::getResponseLeft()
+size_t	Client::getResponseLeft() const
 {
 	return (_response_left);
 }
@@ -104,7 +104,7 @@ int		Client::ResponseStatus(const server_location *s)
 	return (_response_status = 200);
 }
 
-bool	Client::MethodAllowed()
+bool	Client::MethodAllowed() const
 {
 	std::string	method = _request.getMethod();
 
@@ -417,7 +417,7 @@ void		Client::setServer(server_info *s)
 	_request.setMaxSize(s->max_body_size);
 }
 
-const Http_req&	Client::GetRequest()
+const Http_req&	Client::GetRequest() const
 {
 	return (_request);
 }
@@ -431,7 +431,7 @@ void Client::reset()
 	_response_status = 200;
 }
 
-bool Client::isCGI(const server_location *s)
+bool Client::isCGI(const server_location *s) const
 {
 	std::string	str = _request.getUri();
 	size_t		i;
@@ -456,7 +456,7 @@ bool	Client::hasTimedOut()
 	return (false);
 }
 
-std::string	Client::lastModified(const server_location *s)
+std::string	Client::lastModified(const server_location *s) const
 {
 	char			buffer[30];
 	struct stat		stats;
@@ -489,7 +489,7 @@ std::string	Client::lastModified(const server_location *s)
 	return (std::string(buffer));
 }
 
-std::string		Client::setContentType()
+std::string		Client::setContentType() const
 {
 	std::string type;
 	std::string str;
@@ -525,7 +525,7 @@ static size_t inPath(const std::string& path, const std::string& uri, size_t uri
 	return (path_len);
 }
 //const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs) const
 {
 	size_t uri_len = rawuri.length();
 	size_t biggest_coincidence = 0;
