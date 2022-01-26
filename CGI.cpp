@@ -98,7 +98,7 @@ void CGI::childProcess(char **args, int &pipes_in)
 		close(STDIN);
 	if (_request->getBody().length() > 0)
 		close(_CGI_fd);
-	if ((ret = execve(args[0], args, env)) < 0)
+	if (!fileExists(args[1]) || (ret = execve(args[0], args, env)) < 0)
 		ret = 1;
 	std::cout << "Status: 500 Internal Server Error\r\n\r\n";
 	while (env[i])

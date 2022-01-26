@@ -196,7 +196,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 		headers = msg.substr(0, pos + 2);
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	if (isCGI(s))
+	if (isCGI(s) && _response_status < 400)
 		headers.insert(0, "\r\n");
 	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
