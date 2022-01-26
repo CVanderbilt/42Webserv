@@ -7,6 +7,7 @@
 # include <sys/stat.h>
 # include <fstream>
 # include <sstream>
+# include <cctype>
 # include "Config.hpp"
 # include <cstdlib>
 # include <stdint.h>
@@ -50,5 +51,6 @@ std::string ExtractFile(std::string file);
 uint64_t 	ft_now(void);
 std::string getActualDate(void);
 bool		isDirectory(const char *path);
+std::string	toLowerString(std::string str);
 
 #endif

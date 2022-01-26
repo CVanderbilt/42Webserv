@@ -89,9 +89,10 @@ void Http_req::parse_body_multiform(void)
 		}
 		if (!in_body)
 		{
+			line = toLowerString(line);
 			if ((pos_1 = line.find(':')) != line.npos)
 			{
-				if (line.compare(0, pos_1, "Content-Disposition") == 0)
+				if (line.compare(0, pos_1, "content-disposition") == 0)
 				{
 					pos_2 = line.find(';');
 					_mult_form_data[_mfd_size - 1].content_disposition = line.substr(pos_1 + 1, pos_2 - pos_1 - 1);
@@ -106,7 +107,7 @@ void Http_req::parse_body_multiform(void)
 					if((pos_1 = line.find('=', pos_1 + 1)) != line.npos)
 						_mult_form_data[_mfd_size - 1].filename = line.substr(pos_1 + 2, line.size() - pos_1 - 4);
 				}
-				else if (line.compare(0, pos_1, "Content-Type") == 0)
+				else if (line.compare(0, pos_1, "content-type") == 0)
 					_mult_form_data[_mfd_size - 1].content_type = line.substr(pos_1 + 1, line.npos - pos_1 - 1);
 			}
 			else if (line == "\r")
@@ -173,15 +174,15 @@ void Http_req::parse_key_value_pair(std::string& line)
 		_pars_stat = PARSE_ERROR;
 		return ;
 	}
-	std::string key = line.substr(0, eol);
+	std::string key = toLowerString(line.substr(0, eol));
 	while (isspace(line[eol + 1]))
 		eol++;
-	line = line.substr(eol + 1, line.npos);
+	line = toLowerString(line.substr(eol + 1, line.npos));
 	if (_head.count(key))
 		_head[key] = line.empty() ? _head[key] : _head[key] + ", " + line;
 	else
 		_head[key] = line;
-	if ((key == "content-type" || key == "Content-Type") && line.compare(0, 19, "multipart/form-data") == 0)
+	if (key == "content-type"  && line.compare(0, 19, "multipart/form-data") == 0)
 	{
 		_head[key] = "multipart/form-data";
 		eol = line.find("=");
@@ -204,9 +205,7 @@ void Http_req::parse_head(void)
 		{
 			_pars_stat = PARSE_BODY;
 			_content_length = 0;
-			if (_head.count("Content-Length"))
-				_content_length = std::atol(_head["Content-Length"].c_str());
-			else if (_head.count("content-length"))
+			if (_head.count("content-length"))
 				_content_length = std::atol(_head["content-length"].c_str());
 			else
 				_pars_stat = PARSE_END;
@@ -254,9 +253,7 @@ Http_req::parsing_status Http_req::parse_chunk(char* chunk, size_t bytes)
 		_pars_stat = PARSE_ERROR;
 		return (_pars_stat);
 	}
-	if (_pars_stat == PARSE_END && _body != "" &&
-		(_head["Content-Type"] == "multipart/form-data" ||
-		_head["content-type"] == "multipart/form-data"))
+	if (_pars_stat == PARSE_END && _body != "" && _head["content-type"] == "multipart/form-data")
 	{
 		_pars_stat = PARSE_BODY;
 		parse_body_multiform();
