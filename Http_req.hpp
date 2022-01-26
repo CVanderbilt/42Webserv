@@ -31,37 +31,43 @@ class Http_req
 		}	parsing_status;
 
 	private:
-		std::string _aux_buff;
-		int			_mfd_size;
-//		int			_content_size;
+		std::string 						_aux_buff;
+		int									_mfd_size;
+		size_t								_max_size;
+		std::string							_method;
+		std::string							_uri;
+		parsing_status 						_pars_stat;
+		std::string							_file_uri;
+		std::string							_query_string;
+		std::string							_protocol;
+		std::map<std::string, std::string>	_head;
+		std::string							_body;
+		size_t								_content_length;
+		std::vector<Mult_Form_Data>			_mult_form_data;
 
-		bool parse_uri(std::string& line, int eol);
-		void parse_key_value_pair(std::string& line);
-		void parse_loop(void);
-		void parse_method(void);
-		void parse_head(void);
-		void parse_body(void);
-		void parse_body_multiform(void);
+		bool	parse_uri(std::string& line, int eol);
+		void	parse_key_value_pair(std::string& line);
+		void	parse_loop(void);
+		void	parse_method(void);
+		void	parse_head(void);
+		void	parse_body(void);
+		void	parse_body_multiform(void);
+		static std::string status_to_str(parsing_status st);
 
 	public:
-		size_t								max_size;
-		parsing_status 						status;
-		std::string							method;
-		std::string							uri;
-		//std::string							file_uri;
-		std::string							file_uri;
-		std::string							query_string;
-		std::string							protocol;
-		std::map<std::string, std::string>	head;
-		std::string							body;
-		size_t								content_length;
-		std::vector<Mult_Form_Data>			mult_form_data;
 		Http_req(size_t max_size_body);
 		Http_req(Http_req const &copy);
 
-		parsing_status parse_chunk(char* chunk, size_t bytes);
-		static std::string status_to_str(parsing_status st);
-		void initialize(size_t max_size_body);
+		parsing_status	parse_chunk(char* chunk, size_t bytes);
+		void			initialize(size_t max_size_body);
+		size_t			getMaxSize() const;
+		void			setMaxSize(size_t value);
+		std::string		getMethod() const;
+		std::string		getUri() const;
+		std::string		getFileUri() const;
+		std::string		getQueryString() const;
+		std::string		getProtocol() const;
+		std::string		getBody() const;
+		std::map<std::string, std::string>	getHead() const;
+		std::vector<Mult_Form_Data> getMultFormData() const;
 };
-
-std::ostream&   operator<<(std::ostream& os, const Http_req& obj);

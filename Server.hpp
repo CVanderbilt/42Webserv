@@ -17,9 +17,8 @@
 #include "Config.hpp"
 #include "utils.hpp"
 
-#define PORT 8080
 #define BUFFER_SIZE 4096
-#define MAX_CONNEC 20
+#define MAX_CONNEC 50
 class Server
 {
 private:
@@ -50,7 +49,6 @@ public:
 	virtual ~Server() {};
 	void			server_start();
 	void			server_listen();
-	int				getPort();
 
 	class ServerException : public std::exception
 	{

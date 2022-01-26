@@ -25,7 +25,7 @@ Client::Client(Client const &copy) :
 {
 } 
 
-int		Client::getStatus()
+int		Client::getStatus() const
 {
 	return (_status);
 }
@@ -35,23 +35,30 @@ void	Client::updateTime()
 	_time_check = ft_now();
 }
 
-void	Client::getParseChunk(char *chunk, size_t bytes)
+int		Client::getParseChunk(char *chunk, size_t bytes)
 {
 	Http_req::parsing_status temp;
 
 	updateTime();
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
+	{
 		_status = 0;
+		return (0);
+	}	
 	else if (temp == Http_req::PARSE_END)
+	{
 		_status = 1;
+		return (1);
+	}
+	return (0);
 }
 
-std::string	Client::getResponse()
+std::string	Client::getResponse() const
 {
 	return (_response);
 }
 
-size_t	Client::getResponseSent()
+size_t	Client::getResponseSent() const
 {
 	return (_response_sent);
 }
@@ -61,7 +68,7 @@ void	Client::setResponseSent(size_t sent)
 	_response_sent = sent;
 }
 
-size_t	Client::getResponseLeft()
+size_t	Client::getResponseLeft() const
 {
 	return (_response_left);
 }
@@ -73,20 +80,22 @@ void	Client::setResponseLeft(size_t left)
 
 int		Client::ResponseStatus(const server_location *s)
 {
+	std::string	method = _request.getMethod();
+	
 	if (_response_status >= 400)
 		return (1);
 	_response_status = 200;
 	if (!s)
 		return (_response_status = 404);
-	if ( (_request.method == "GET" && !s->allow_get) ||
-		(_request.method == "POST" && !s->allow_post) ||
-		(_request.method == "DELETE" && !s->allow_delete) )
+	if ( (method == "GET" && !s->allow_get) ||
+		(method == "POST" && !s->allow_post) ||
+		(method == "DELETE" && !s->allow_delete) )
 		return (_response_status = 405);
 	if (_status == 0)
 	{
-		if (_request.protocol.compare("HTTP/1.1") != 0)
+		if (_request.getProtocol().compare("HTTP/1.1") != 0)
 			return (_response_status = 505);
-		if (_request.body.length() > _s->max_body_size)
+		if (_request.getBody().length() > _s->max_body_size)
 			return (_response_status = 413);
 		return (_response_status = 400);
 	}
@@ -95,11 +104,13 @@ int		Client::ResponseStatus(const server_location *s)
 	return (_response_status = 200);
 }
 
-bool	Client::MethodAllowed()
+bool	Client::MethodAllowed() const
 {
-	if (_request.method.compare("GET") == 0 ||
-		_request.method.compare("POST") == 0 ||
-		_request.method.compare("DELETE") == 0)
+	std::string	method = _request.getMethod();
+
+	if (method.compare("GET") == 0 ||
+		method.compare("POST") == 0 ||
+		method.compare("DELETE") == 0)
 		return (true);
 	else
 		return (false);
@@ -128,8 +139,9 @@ void	Client::BuildResponse()
 {
 	std::stringstream	stream;
 	std::string			body;
+	std::string	method = _request.getMethod();
 	
-	LPair lpair = locationByUri(_request.uri, _s->locations);
+	LPair lpair = locationByUri(_request.getUri(), _s->locations);
 	ResponseStatus(lpair.first);
 	if (_response_status < 400)
 	{
@@ -143,11 +155,11 @@ void	Client::BuildResponse()
 		}
 		else if (isCGI(lpair.first))
 			body = ExecuteCGI(lpair.first);
-		else if (_request.method.compare("GET") == 0)
+		else if (method.compare("GET") == 0)
 			body = BuildGet(lpair);
-		else if (_request.method.compare("POST") == 0)
+		else if (method.compare("POST") == 0)
 			body = BuildPost(lpair);
-		else if (_request.method.compare("DELETE") == 0)
+		else if (method.compare("DELETE") == 0)
 			body = BuildDelete(lpair);
 	}
 	if (_response_status >= 400)
@@ -189,7 +201,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
 	AddIfNotSet(headers, "Date", getActualDate());
-	if (_request.method.compare("GET") == 0 && s != 0)
+	if (_request.getMethod().compare("GET") == 0 && s != 0)
 		AddIfNotSet(headers, "Last-Modified", lastModified(s));
 	if (_response_status == 301)
 	{
@@ -198,7 +210,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	}
 	else if (_response_status == 503)
 		AddIfNotSet(headers ,"Retry-After", 120);
-	AddIfNotSet(headers, "Server", "Webserv/0.9");
+	AddIfNotSet(headers, "Server", "Webserv/1.9");
 	stream << headers << "\r\n" << body;
 	return (stream.str());
 }
@@ -273,7 +285,7 @@ std::string Client::ExecuteCGI(const server_location *s)
 {
 	try
 	{
-		if (_request.method.compare("DELETE") == 0)
+		if (_request.getMethod().compare("DELETE") == 0)
 			throw 405 ;
 		std::string ret;
 		CGI cgi(&_request, s, _s);
@@ -326,17 +338,19 @@ std::string	Client::BuildGet(LPair& lpair)
 
 std::string	Client::BuildPost(LPair& lpair)
 {
+	std::vector<Mult_Form_Data>	mtd = _request.getMultFormData();
+	
 	if (lpair.first->write_enabled)
 	{
-		for (size_t i = 0; i < _request.mult_form_data.size(); i++)
-			if (_request.mult_form_data[i].filename != "")
+		for (size_t i = 0; i < mtd.size(); i++)
+			if (mtd[i].filename != "")
 			{
 				std::ofstream file;
-				std::string _req_file = lpair.first->write_path + "/" + _request.mult_form_data[i].filename;
+				std::string _req_file = lpair.first->write_path + "/" + mtd[i].filename;
 				file.open(_req_file.c_str());
 				if (file.is_open() && file.good())
 				{
-					file.write(_request.mult_form_data[i].body.c_str(), _request.mult_form_data[i].body.length());
+					file.write(mtd[i].body.c_str(), mtd[i].body.length());
 					file.close();
 				}
 				else
@@ -400,10 +414,10 @@ std::map<int, std::string>	Client::StatusMessages()
 void		Client::setServer(server_info *s)
 {
 	_s = s;
-	_request.max_size = s->max_body_size;
+	_request.setMaxSize(s->max_body_size);
 }
 
-const Http_req&	Client::GetRequest()
+const Http_req&	Client::GetRequest() const
 {
 	return (_request);
 }
@@ -417,15 +431,13 @@ void Client::reset()
 	_response_status = 200;
 }
 
-bool Client::isCGI(const server_location *s)
+bool Client::isCGI(const server_location *s) const
 {
-	std::string	str;
+	std::string	str = _request.getUri();
 	size_t		i;
 	
-	if ((i = _request.uri.find("?")) != _request.uri.npos)
-		str = _request.uri.substr(0, i);
-	else
-		str = _request.uri;
+	if ((i = str.find("?")) != str.npos)
+		str = str.substr(0, i);
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i, str.length() - i);
 	for (std::vector<std::string>::const_iterator it = s->cgi.begin(); it != s->cgi.end(); it++)
@@ -444,7 +456,7 @@ bool	Client::hasTimedOut()
 	return (false);
 }
 
-std::string	Client::lastModified(const server_location *s)
+std::string	Client::lastModified(const server_location *s) const
 {
 	char			buffer[30];
 	struct stat		stats;
@@ -462,8 +474,8 @@ std::string	Client::lastModified(const server_location *s)
 			path = s->root;
 		}
 	}
-	else if (_request.file_uri != "")
-		path = s->root + "/" + _request.file_uri;
+	else if (_request.getFileUri() != "")
+		path = s->root + "/" + _request.getFileUri();
 	if (stat(path.c_str(), &stats) == 0)
 	{
 		gm = gmtime(&stats.st_mtime);
@@ -477,13 +489,13 @@ std::string	Client::lastModified(const server_location *s)
 	return (std::string(buffer));
 }
 
-std::string		Client::setContentType()
+std::string		Client::setContentType() const
 {
 	std::string type;
 	std::string str;
 	size_t		i;
 	
-	str = _request.uri;
+	str = _request.getUri();
 	if ((i = str.find_last_of(".")) != str.npos)
 		str = str.substr(i + 1, str.length() - i);
 	if (str == "css")
@@ -513,7 +525,7 @@ static size_t inPath(const std::string& path, const std::string& uri, size_t uri
 	return (path_len);
 }
 //const server_location *Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs)
-Client::LPair Client::locationByUri(std::string& rawuri, const std::vector<server_location>& locs)
+Client::LPair Client::locationByUri(const std::string& rawuri, const std::vector<server_location>& locs) const
 {
 	size_t uri_len = rawuri.length();
 	size_t biggest_coincidence = 0;
