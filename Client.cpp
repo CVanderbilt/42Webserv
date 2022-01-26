@@ -111,7 +111,7 @@ std::string	Client::BuildError()
 	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
-		body = "\n\r" + str;
+		body = "\r\n" + str;
 	}
 	else
 	{
@@ -184,7 +184,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 		headers = msg.substr(0, pos + 2);
 		body = msg.substr(pos + 2, msg.npos);
 	}
-	if (isCGI(s))
+	if (isCGI(s) && _response_status < 400)
 		headers.insert(0, "\r\n");
 	AddIfNotSet(headers, "Content-Type", setContentType());
 	AddIfNotSet(headers, "Content-Length", body.length());
