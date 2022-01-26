@@ -122,7 +122,7 @@ std::string	Client::BuildError()
 	if (_s->error_pages.count(_response_status) > 0 && fileExists(_s->error_pages[_response_status]))
 	{	
 		std::string str = ExtractFile(_s->error_pages.find(_response_status)->second);
-		body = "\n\r" + str;
+		body = "\r\n" + str;
 	}
 	else
 	{
@@ -210,7 +210,7 @@ std::string Client::WrapHeader(const std::string& msg, const server_location *s)
 	}
 	else if (_response_status == 503)
 		AddIfNotSet(headers ,"Retry-After", 120);
-	AddIfNotSet(headers, "Server", "Webserv/0.9");
+	AddIfNotSet(headers, "Server", "Webserv/1.9");
 	stream << headers << "\r\n" << body;
 	return (stream.str());
 }
