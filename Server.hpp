@@ -32,12 +32,14 @@ private:
 	std::map<int, Client>			_clients;
 	server_info						_configuration;
 
+	void			pollin_handler(int i);
+	int				pollout_handler(int i);
 	void			accept_connection();
 	void			read_message(int i);
 	void			add_to_pfds(int new_fd);
 	void			del_from_pfds(int i);
 	void			close_fd_del_client(int i);
-	void			send_response(int i);
+	int				send_response(int i);
 	void			addServerConfig(server_config const& s);
 	void			addServerLocations(server_config const& s);
 	Server(){};
