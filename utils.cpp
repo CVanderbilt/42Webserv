@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <iostream>
+#include <algorithm>
 #include <sys/time.h>
 
 uint64_t ft_now(void)
@@ -111,3 +112,9 @@ server_info::server_info(const server_info& other):
 	cgi_paths(other.cgi_paths),
 	max_body_size(other.max_body_size)
 {}
+
+std::string	toLowerString(std::string str)
+{
+	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+	return (str);
+}
