@@ -3,25 +3,25 @@
 Client::Client() : 
 	_status(-1),
 	_response_status(200),
-	_response_sent(0),
-	_response_left(0),
 	_request(-1),
 	_stat_msg(StatusMessages()),
-	_time_check(ft_now())
+	_time_check(ft_now()),
+	_bytes_sent(0),
+	_response_built(false)
 {
 }
 
 Client::Client(Client const &copy) :
 	_status(copy._status),
 	_response_status(copy._response_status),
-	_response_sent(copy._response_sent),
-	_response_left(copy._response_left),
 	_request(copy._request),
 	_stat_msg(copy._stat_msg),
 	_redirect(copy._redirect),
 	_time_check(copy._time_check),
 	_error_pages(copy._error_pages),
-	_s(copy._s)
+	_s(copy._s),
+	_bytes_sent(copy._bytes_sent),
+	_response_built(copy._response_built)
 {
 } 
 
@@ -44,7 +44,7 @@ int		Client::getParseChunk(char *chunk, size_t bytes)
 	{
 		_status = 0;
 		return (0);
-	}	
+	}
 	else if (temp == Http_req::PARSE_END)
 	{
 		_status = 1;
@@ -58,30 +58,10 @@ std::string	Client::getResponse() const
 	return (_response);
 }
 
-size_t	Client::getResponseSent() const
-{
-	return (_response_sent);
-}
-
-void	Client::setResponseSent(size_t sent)
-{
-	_response_sent = sent;
-}
-
-size_t	Client::getResponseLeft() const
-{
-	return (_response_left);
-}
-
-void	Client::setResponseLeft(size_t left)
-{
-	_response_left = left;
-}
-
 int		Client::ResponseStatus(const server_location *s)
 {
 	std::string	method = _request.getMethod();
-	
+
 	if (_response_status >= 400)
 		return (1);
 	_response_status = 200;
@@ -112,8 +92,7 @@ bool	Client::MethodAllowed() const
 		method.compare("POST") == 0 ||
 		method.compare("DELETE") == 0)
 		return (true);
-	else
-		return (false);
+	return (false);
 }
 
 std::string	Client::BuildError()
@@ -166,7 +145,8 @@ void	Client::BuildResponse()
 		body = BuildError();
 	stream << WrapHeader(body, lpair.first);
 	_response = stream.str();
-	_response_left = _response.length();
+	_bytes_sent = 0;
+	_response_built = true;
 }
 
 template<typename T>
@@ -339,7 +319,7 @@ std::string	Client::BuildGet(LPair& lpair)
 std::string	Client::BuildPost(LPair& lpair)
 {
 	std::vector<Mult_Form_Data>	mtd = _request.getMultFormData();
-	
+
 	if (lpair.first->write_enabled)
 	{
 		for (size_t i = 0; i < mtd.size(); i++)
@@ -425,10 +405,23 @@ const Http_req&	Client::GetRequest() const
 void Client::reset()
 {
 	_request.initialize(_s->max_body_size);
-	_response_sent = 0;
-	_response_left = 0;
 	_status = -1;
 	_response_status = 200;
+	_bytes_sent = 0;
+	_response_built = false;
+	_response.clear();
+}
+
+int Client::Send(int fd)
+{
+	updateTime();
+	if (!_response_built)
+		BuildResponse();
+	size_t val_sent = send(fd, _response.c_str() + _bytes_sent, _response.length() - _bytes_sent, 0);
+	if (val_sent < 0)
+		return (-1);
+	_bytes_sent += val_sent;
+	return (val_sent);
 }
 
 bool Client::isCGI(const server_location *s) const

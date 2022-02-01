@@ -27,14 +27,14 @@ private:
 	int							_status;
 	int							_response_status;
 	std::string					_response;
-	size_t						_response_sent;
-	size_t						_response_left;
 	Http_req					_request;
 	std::map<int, std::string>	_stat_msg;
 	std::string					_redirect;
 	uint64_t					_time_check;
 	std::map<int, std::string>	*_error_pages;
 	server_info 				*_s;
+	size_t						_bytes_sent;
+	bool						_response_built;
 
 	typedef std::pair<const server_location*, std::string> LPair;
 
@@ -49,12 +49,13 @@ private:
 	std::string		BuildPost(LPair& lpair);
 	std::string		BuildDelete(LPair& lpair);
 	std::string		BuildAutoindex();
+	void			BuildResponse();
 	std::string		GetAutoIndex(const std::string& directory, LPair& lpair);
 	std::string		WrapHeader(const std::string& msg, const server_location *);
 	bool			isCGI(const server_location *) const;
 	std::map<int, std::string>		StatusMessages();
 	std::string		lastModified(const server_location *) const;
-	LPair 			locationByUri(const std::string& uri, const std::vector<server_location>& locs) const;
+	LPair			locationByUri(const std::string& uri, const std::vector<server_location>& locs) const;
 	std::string		setContentType() const;
 
 public:
@@ -67,12 +68,8 @@ public:
 	int 			getStatus() const;
 	void			updateTime();
 	int				getParseChunk(char *chunk, size_t bytes);
-	void			BuildResponse();
 	std::string		getResponse() const;
-	size_t			getResponseSent() const;
-	void			setResponseSent(size_t sent);
-	size_t			getResponseLeft() const;
-	void			setResponseLeft(size_t left);
+	int				Send(int fd);
 	const Http_req&	GetRequest() const;
 	void 			reset();
 	bool			hasTimedOut();

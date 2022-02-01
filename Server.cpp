@@ -212,6 +212,40 @@ void	Server::read_message(int i)
 	delete[] buffer;
 }
 
+void	Server::pollin_handler(int i)
+{
+	if (_pfds[i].fd == _server_fd)
+		accept_connection();
+	else
+		read_message(i);
+}
+
+int	Server::pollout_handler(int i)
+{
+	int status = 0;
+	if (_clients.count(_pfds[i].fd))
+	{
+		status = _clients[_pfds[i].fd].getStatus();
+		if (status < 0 || send_response(i) > 0)
+			return (0);
+	}
+	const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().getHead();
+	if (status == 0)
+		close_fd_del_client(i);
+	else
+	{
+		std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
+		if (cnt != head_info.end() && cnt->second == "close")
+			close_fd_del_client(i); //todo error msg
+		else
+		{
+			_clients[_pfds[i].fd].reset();
+			_pfds[i].events = POLLIN;
+		}
+	}
+	return (1);
+}
+
 void	Server::server_listen()
 {
 	int poll_count = poll(_pfds, _fd_count, 1);
@@ -229,46 +263,14 @@ void	Server::server_listen()
 #ifdef PRINT_MODE
 			std::cout << "server: fd: " << _pfds[i].fd << " its client has timed out" << std::endl;
 #endif
-			send_response(i);
 			close_fd_del_client(i);
 		}
 		else if (_pfds[i].revents & POLLIN)
-		{
-			if (_pfds[i].fd == _server_fd)
-				accept_connection();
-			else
-				read_message(i);
-		}
+			pollin_handler(i);
 		else if(_pfds[i].revents & POLLOUT)
 		{
-			if (_pfds[i].fd == _server_fd)
+			if (_pfds[i].fd == _server_fd || !pollout_handler(i))
 				continue ;
-			int status = 0; //revisar si es posible que entre aquí pero no pueda entrar en el if, y si se da el caso ver que hay que hacer
-			if (_clients.count(_pfds[i].fd))
-			{
-				status = _clients[_pfds[i].fd].getStatus();
-				if (status >= 0)
-				{
-					send_response(i);
-					_pfds[i].events = POLLIN;
-				}
-				else
-					continue;
-			}
-			const std::map<std::string, std::string>& head_info = _clients[_pfds[i].fd].GetRequest().getHead();
-			if (status == 0)
-				close_fd_del_client(i);
-			else
-			{
-				std::map<std::string, std::string>::const_iterator cnt = head_info.find("Connection");
-				if (cnt != head_info.end() && cnt->second == "close")
-					close_fd_del_client(i); //todo error msg
-				else
-				{
-					_clients[_pfds[i].fd].reset();
-					_pfds[i].events = POLLIN;
-				}
-			}
 		}
 		if(_pfds[i].fd == -1)
 		{
@@ -302,30 +304,25 @@ void	Server::del_from_pfds(int i)
 
 void	Server::close_fd_del_client(int i)
 {
+	if (_pfds[i].fd < 0)
+		return ;
 	if (close(_pfds[i].fd) < 0)
 		std::cout << "problem closing" << std::endl;
 	_clients.erase(_pfds[i].fd);
 	_pfds[i].fd = -1;
 }
 
-void	Server::send_response(int i)
+int		Server::send_response(int i)
 {
 	size_t val_sent;
-	size_t total_sent = 0;
-
-	_clients[_pfds[i].fd].BuildResponse();
-	_clients[_pfds[i].fd].updateTime();
-
-	std::string r = _clients[_pfds[i].fd].getResponse();
-	size_t bytes_to_send = r.length();
-	do
-	{
-		val_sent = send(_pfds[i].fd, r.c_str(), r.length(), 0);
-		total_sent += val_sent;
-		r = r.substr(val_sent, r.npos);
-	} while (total_sent < bytes_to_send);
+	Client &c = _clients[_pfds[i].fd];
 	
-	//_clients[_pfds[i].fd].getResponse().clear();//al acabar
+	val_sent = c.Send(_pfds[i].fd);
+	if (!val_sent)
+		_pfds[i].events = POLLOUT;
+	else if (val_sent < 0)
+		close_fd_del_client(i);
+	return (val_sent);
 }
 
 Server::ServerException::ServerException(void)
