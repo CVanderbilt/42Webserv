@@ -417,11 +417,15 @@ int Client::Send(int fd)
 	updateTime();
 	if (!_response_built)
 		BuildResponse();
-	size_t val_sent = send(fd, _response.c_str() + _bytes_sent, _response.length() - _bytes_sent, 0);
-	if (val_sent < 0)
-		return (-1);
-	_bytes_sent += val_sent;
-	return (val_sent);
+	if(_response.length() > _bytes_sent)
+	{
+		size_t val_sent = send(fd, _response.c_str() + _bytes_sent, _response.length() - _bytes_sent, 0);
+		if (val_sent < 0)
+			return (-1);
+		_bytes_sent += val_sent;
+		return (val_sent);
+	}
+	return (0);
 }
 
 bool Client::isCGI(const server_location *s) const

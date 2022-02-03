@@ -160,9 +160,9 @@ void	CGI::addEnvVars(void)
 	_env_vec.push_back("AUTH_TYPE=NULL");
 	_env_vec.push_back("REMOTE_USER=NULL");
 	if (_request->getHead().count("content-type"))
-		_env_vec.push_back("CONTENT_TYPE=" + _request->getHead()["Content-Type"]);
-	if (_request->getHead().count("Content-Length"))
-		_env_vec.push_back("CONTENT_LENGTH=" + _request->getHead()["Content-Length"]);
+		_env_vec.push_back("CONTENT_TYPE=" + _request->getHead()["content-type"]);
+	if (_request->getHead().count("content-length"))
+		_env_vec.push_back("CONTENT_LENGTH=" + _request->getHead()["content-length"]);
 	else
 		_env_vec.push_back("CONTENT_LENGTH=0");
 	_env_vec.push_back("QUERY_STRING=" + _request->getQueryString());
