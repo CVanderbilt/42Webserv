@@ -40,7 +40,11 @@ $(NAME):	${OBJS}
 all:		${NAME}
 
 debug:		fclean ${OBJS}
-			${CLANG} ${FLAGS} -g3 ${OBJS} -o ${NAME}
+#			${CLANG} ${FLAGS} -g3 ${OBJS} -o ${NAME}
+#			valgrind --leak-check=full --track-fds=yes ./$(NAME)
+			${CLANG} ${FLAGS} -g3 -fsanitize=address ${OBJS} -o ${NAME}
+			ASAN_OPTIONS=detect_leaks=1 ./$(NAME)
+
 
 clean:
 			${RM} ${OBJS_PATH}
