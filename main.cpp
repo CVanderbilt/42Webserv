@@ -8,7 +8,11 @@ int main(int argc, char *argv[])
 	std::map<std::string, std::string>	cgi_exec_path;
 
 	if (argc > 2)
+	{
 		std::cerr << "Wrong number of arguments" << std::endl;
+		std::cerr << "Usage: " << argv[0] << std::endl << " or " << std::endl << argv[0] << " [config path]" << std::endl;
+		return (1);
+	}
 	try
 	{
 		if (argc == 2)

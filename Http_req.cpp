@@ -73,14 +73,15 @@ void Http_req::parse_body(void)
 void Http_req::parse_body_multiform(void)
 {
 	std::stringstream	ss;
-	std::string			line;
+	std::string			line, low_line;
 	size_t 				pos_1, pos_2;
 	bool				in_body = false;
 
 	ss << _body;
 	while (std::getline(ss, line))
 	{
-		if (line.compare("--" + _head["boundary"] + "\r") == 0)
+		low_line = toLowerString(line);
+		if (low_line.compare("--" + _head["boundary"] + "\r") == 0)
 		{
 			Mult_Form_Data new_mfd;
 			_mult_form_data.push_back(new_mfd);
@@ -89,7 +90,7 @@ void Http_req::parse_body_multiform(void)
 		}
 		if (!in_body)
 		{
-			line = toLowerString(line);
+			line = low_line;
 			if ((pos_1 = line.find(':')) != line.npos)
 			{
 				if (line.compare(0, pos_1, "content-disposition") == 0)
@@ -115,7 +116,7 @@ void Http_req::parse_body_multiform(void)
 		}
 		else
 		{
-			if (line.compare(0, _head["boundary"].size() + 4, "--" + _head["boundary"] + "--") == 0)
+			if (low_line.compare(0, _head["boundary"].size() + 4, "--" + _head["boundary"] + "--") == 0)
 			{
 				in_body = false;
 				_pars_stat = PARSE_END;
