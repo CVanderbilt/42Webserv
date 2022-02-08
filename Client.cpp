@@ -43,7 +43,7 @@ int		Client::getParseChunk(char *chunk, size_t bytes)
 	if ((temp = _request.parse_chunk(chunk, bytes)) == Http_req::PARSE_ERROR)
 	{
 		_status = 0;
-		return (0);
+		return (1);
 	}
 	else if (temp == Http_req::PARSE_END)
 	{
